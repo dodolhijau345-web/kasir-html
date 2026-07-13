@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kas Laundry JABUFI</title>
+<style>
+body{font-family:Arial; padding:15px; background:#f2f2f2; max-width:600px; margin:auto}
+h2{text-align:center; color:#2196F3}
+.box{background:white; padding:15px; border-radius:10px; margin-bottom:15px; box-shadow:0 2px 5px #ccc}
+button{width:100%; padding:14px; margin:8px 0; border:none; border-radius:8px; font-size:16px; font-weight:bold; color:white; cursor:pointer}
+.masuk{background:#4CAF50}
+.keluar{background:#f44336}
+.laporan{background:#2196F3}
+.reset{background:#FF9800}
+input,select{width:100%; box-sizing:border-box; padding:12px; margin:6px 0; border:1px solid #ddd; border-radius:6px}
+.hasil{font-size:18px; font-weight:bold}
+.tabel{font-size:14px; max-height:300px; overflow-y:auto}
+.item{border-bottom:1px solid #eee; padding:10px 0; display:flex; justify-content:space-between}
+.masuk-text{color:#4CAF50; font-weight:bold}
+.keluar-text{color:#f44336; font-weight:bold}
+</style>
+</head>
+<body>
+<h2>📒 BUKU KAS LAUNDRY JABUFI</h2>
+
+<div class="box">
+<h3>1. Input Transaksi</h3>
+<input id="ket" placeholder="Contoh: Cuci 5kg / Beli Detergen">
+<input id="nominal" type="number" placeholder="Nominal Rp">
+<select id="jenis">
+<option value="masuk">PEMASUKAN</option>
+<option value="keluar">PENGELUARAN</option>
+</select>
+<button class="masuk" onclick="simpanTransaksi()">+ SIMPAN TRANSAKSI</button>
+</div>
+
+<div class="box">
+<h3>2. Laporan Bulanan</h3>
+<button class="laporan" onclick="buatLaporan()">LIHAT LAPORAN BULAN INI</button>
+<div id="hasil" class="hasil"></div>
+</div>
+
+<div class="box">
+<h3>3. Riwayat</h3>
+<div id="tabel" class="tabel">Belum ada transaksi</div>
+<button class="reset" onclick="hapusData()">HAPUS SEMUA DATA</button>
+</div>
+
+<script>
+const KUNCI = 'kasJabufiFinal';
+const PASSWORD = 'jabufi123';
+let data = [];
+
+function load(){
+  let d = localStorage.getItem(KUNCI);
+  data = d? JSON.parse(d) : [];
+}
+
+function save(){
+  localStorage.setItem(KUNCI, JSON.stringify(data));
+}
+
+function tampil(){
+  let tabel = document.getElementById('tabel');
+  if(data.length === 0){ tabel.innerHTML = '<i>Belum ada transaksi</i>'; return; }
+  let html = '';
+  for(let i = data.length -1; i >= 0; i--){
+    let d = data[i];
+    let kelas = d.jenis === 'masuk'? 'masuk-text' : 'keluar-text';
+    let tanda = d.jenis === 'masuk'? '+' : '-';
+    html += `<div class="item"><div>${d.tanggal}<br>${d.ket}</div><div class="${kelas}">${tanda} Rp ${d.nominal.toLocaleString('id-ID')}</div></div>`;
+  }
+  tabel.innerHTML = html;
+}
+
+function simpanTransaksi(){
+  let ket = document.getElementById('ket').value.trim();
+  let nominal = Number(document.getElementById('nominal').value);
+  let jenis = document.getElementById('jenis').value;
+  let tanggal = new Date().toLocaleDateString('id-ID');
+  let bln = new Date().getMonth();
+  let thn = new Date().getFullYear();
+
+  if(ket === '' || nominal <= 0){ alert('Lengkapi dulu!'); return; }
+
+  data.push({ket, nominal, jenis, tanggal, bln, thn});
+  save();
+  tampil();
+  document.getElementById('ket').value = '';
+  document.getElementById('nominal').value = '';
+  alert('Tersimpan!');
+}
+
+function buatLaporan(){
+  let bln = new Date().getMonth();
+  let thn = new Date().getFullYear();
+  let masuk = 0, keluar = 0;
+  data.forEach(d => {
+    if(d.bln === bln && d.thn === thn){
+      if(d.jenis === 'masuk') masuk += d.nominal;
+      else keluar += d.nominal;
+    }
+  });
+  let laba = masuk - keluar;
+  document.getElementById('hasil').innerHTML =
+  `Masuk: <span class="masuk-text">Rp ${masuk.toLocaleString('id-ID')}</span><br>
+   Keluar: <span class="keluar-text">Rp ${keluar.toLocaleString('id-ID')}</span><br>
+   <hr>Saldo: Rp ${laba.toLocaleString('id-ID')}`;
+}
+
+function hapusData(){
+  let pass = prompt('PASSWORD HAPUS DATA:\n' + PASSWORD);
+  if(pass === null) return;
+  if(pass!== PASSWORD){ alert('PASSWORD SALAH!'); return; }
+  if(!confirm('YAKIN HAPUS SEMUA?')) return;
+
+  // JURUS TERAKHIR: HAPUS TOTAL
+  localStorage.clear();
+  data = [];
+  tampil();
+  document.getElementById('hasil').innerHTML = '';
+  alert('BERHASIL DIHAPUS TOTAL');
+}
+
+load();
+tampil();
+</script>
+</body>
+</html>
