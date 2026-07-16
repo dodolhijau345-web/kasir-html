@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir Parkir</title>
+<style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #f0f2f5; padding: 20px; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+    h3 { text-align: center; margin: 0 0 25px 0; color: #333; }
+    .time-row { display: flex; gap: 15px; margin-bottom: 20px; }
+    .time-box { flex: 1; }
+    label { display: block; font-size: 14px; color: #666; margin-bottom: 8px; font-weight: bold; }
+    input[type="time"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; }
+    button { width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #a400b363; }
+    .result { margin-top: 20px; padding: 20px; background: #e7f3ff; border-radius: 8px; text-align: center; display: none; }
+    .result.show { display: block; }
+    .result p { margin: 8px 0; font-size: 16px; }
+    .total { font-size: 28px; font-weight: bold; color: #007bff; margin-top: 10px; }
+    .note { font-size: 12px; color: #666; text-align: center; margin-top: 15px; }
+</style>
+</head>
+<body>
+<div class="box">
+    <h3>🚗 Hitung Biaya Parkir</h3>
+    
+    <div class="time-row">
+        <div class="time-box">
+            <label>Jam Masuk</label>
+            <input type="time" id="masuk" value="10:25">
+        </div>
+        <div class="time-box">
+            <label>Jam Keluar</label>
+            <input type="time" id="keluar" value="22:45">
+        </div>
+    </div>
+
+    <button onclick="hitung()">Hitung & Bayar</button>
+
+    <div class="result" id="hasil">
+        <p>Durasi Parkir</p>
+        <p><strong id="durasi">0 jam 0 menit</strong></p>
+        <p>Total Bayar</p>
+        <div class="total" id="bayar">Rp 0</div>
+    </div>
+    
+    <p class="note">Jam 1: Rp 2.000 | Jam berikutnya: Rp 5.000/jam<br>Pembulatan ke atas per jam</p>
+</div>
+
+<script>
+function hitung() {
+    let masuk = document.getElementById('masuk').value;
+    let keluar = document.getElementById('keluar').value;
+    
+    if (!masuk || !keluar) {
+        alert('Isi jam masuk dan keluar dulu!');
+        return;
+    }
+    
+    let [jm, mm] = masuk.split(':').map(Number);
+    let [jk, mk] = keluar.split(':').map(Number);
+    
+    let menitMasuk = jm * 60 + mm;
+    let menitKeluar = jk * 60 + mk;
+    
+    if (menitKeluar < menitMasuk) menitKeluar += 24 * 60;
+    
+    let durasi = menitKeluar - menitMasuk;
+    
+    if (durasi <= 0) {
+        alert('Jam keluar harus setelah jam masuk!');
+        return;
+    }
+    
+    let jam = Math.floor(durasi / 60);
+    let menit = durasi % 60;
+    let jamTagihan = Math.ceil(durasi / 60);
+    
+    let biaya = durasi <= 60 ? 2000 : 2000 + (jamTagihan - 1) * 5000;
+    
+    document.getElementById('durasi').innerText = `${jam} jam ${menit} menit`;
+    document.getElementById('bayar').innerText = 'Rp ' + biaya.toLocaleString('id-ID');
+    document.getElementById('hasil').classList.add('show');
+}
+</script>
+</body>
+</html>
