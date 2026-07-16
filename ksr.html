@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kasir Laundry Pisah</title>
+<style>
+  body { font-family: Arial; background: #f2f2f2; padding: 20px; }
+  .box { background: white; padding: 20px; border-radius: 10px; max-width: 700px; margin: auto; }
+  h2 { text-align: center; color: #007bff; }
+  .btn-group button { width: 49%; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+  .btn-masuk { background: #28a745; color: white; }
+  .btn-keluar { background: #dc3545; color: white; }
+  .form-box { display: none; margin-top: 15px; padding: 15px; border: 2px dashed #ccc; border-radius: 8px; }
+  input, select { width: 100%; padding: 8px; margin: 5px 0; border-radius: 5px; border: 1px solid #ccc; }
+  .simpan { background: #007bff; color: white; width: 100%; padding: 10px; border: none; border-radius: 5px; margin-top: 10px; }
+  table { width: 100%; margin-top: 10px; border-collapse: collapse; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 13px; }
+  th.masuk { background: #28a745; color: white; }
+  th.keluar { background: #dc3545; color: white; }
+  .ringkasan { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center; }
+  .ringkasan h3 { margin: 5px; }
+  .saldo { font-size: 22px; color: #007bff; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h2>KASIR LAUNDRY</h2>
+
+  <div class="btn-group">
+    <button class="btn-masuk" onclick="tampilkanForm('masuk')">+ TAMBAH PEMASUKAN</button>
+    <button class="btn-keluar" onclick="tampilkanForm('keluar')">+ TAMBAH PENGELUARAN</button>
+  </div>
+
+  <!-- FORM PEMASUKAN -->
+  <div id="formMasuk" class="form-box">
+    <h3 style="color:#28a745">Form Pemasukan</h3>
+    <select id="kategoriMasuk">
+      <option>Cuci Kiloan</option><option>Cuci Selimut</option>
+      <option>Cuci Satuan</option><option>Setrika Saja</option><option>Lainnya</option>
+    </select>
+    <input type="text" id="detailMasuk" placeholder="Detail: 5kg / Nama">
+    <input type="number" id="jumlahMasuk" placeholder="Jumlah Rp">
+    <button class="simpan" onclick="simpanData('Pemasukan')">SIMPAN</button>
+  </div>
+
+  <!-- FORM PENGELUARAN -->
+  <div id="formKeluar" class="form-box">
+    <h3 style="color:#dc3545">Form Pengeluaran</h3>
+    <select id="kategoriKeluar">
+      <option>Beli Deterjen</option><option>Beli Pewangi</option>
+      <option>Bayar Listrik</option><option>Bayar Air</option>
+      <option>Gaji Karyawan</option><option>Sewa</option><option>Lainnya</option>
+    </select>
+    <input type="text" id="detailKeluar" placeholder="Keterangan">
+    <input type="number" id="jumlahKeluar" placeholder="Jumlah Rp">
+    <button class="simpan" style="background:#dc3545" onclick="simpanData('Pengeluaran')">SIMPAN</button>
+  </div>
+
+  <!-- RINGKASAN SALDO -->
+  <div class="ringkasan">
+    <h3>Total Pemasukan: Rp <span id="totalMasuk">0</span></h3>
+    <h3>Total Pengeluaran: Rp <span id="totalKeluar">0</span></h3>
+    <hr>
+    <h3>SALDO AKHIR</h3>
+    <div class="saldo">Rp <span id="saldo">0</span></div>
+  </div>
+
+  <!-- TABEL PISAH -->
+  <h3>Tabel Pemasukan</h3>
+  <table id="tabelMasuk">
+    <tr><th class="masuk">Tanggal</th><th class="masuk">Kategori</th><th class="masuk">Detail</th><th class="masuk">Jumlah</th></tr>
+  </table>
+
+  <h3>Tabel Pengeluaran</h3>
+  <table id="tabelKeluar">
+    <tr><th class="keluar">Tanggal</th><th class="keluar">Kategori</th><th class="keluar">Detail</th><th class="keluar">Jumlah</th></tr>
+  </table>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('kasirLaundry3')) || [];
+
+function tampilkanForm(jenis){
+  document.getElementById('formMasuk').style.display = 'none';
+  document.getElementById('formKeluar').style.display = 'none';
+  if(jenis == 'masuk') document.getElementById('formMasuk').style.display = 'block';
+  else document.getElementById('formKeluar').style.display = 'block';
+}
+
+function simpanData(jenis){
+  let kategori, detail, jumlah;
+  if(jenis == 'Pemasukan'){
+    kategori = document.getElementById('kategoriMasuk').value;
+    detail = document.getElementById('detailMasuk').value;
+    jumlah = document.getElementById('jumlahMasuk').value;
+  } else {
+    kategori = document.getElementById('kategoriKeluar').value;
+    detail = document.getElementById('detailKeluar').value;
+    jumlah = document.getElementById('jumlahKeluar').value;
+  }
+  if(!jumlah){ alert('Isi jumlah dulu'); return; }
+
+  data.push({tanggal: new Date().toLocaleDateString('id-ID'), jenis, kategori, detail, jumlah: parseInt(jumlah)});
+  localStorage.setItem('kasirLaundry3', JSON.stringify(data));
+  tampilkanData();
+  alert('Tersimpan!');
+}
+
+function tampilkanData(){
+  let tabelMasuk = document.getElementById('tabelMasuk');
+  let tabelKeluar = document.getElementById('tabelKeluar');
+  let totalMasuk = 0, totalKeluar = 0;
+
+  tabelMasuk.innerHTML = '<tr><th class="masuk">Tanggal</th><th class="masuk">Kategori</th><th class="masuk">Detail</th><th class="masuk">Jumlah</th></tr>';
+  tabelKeluar.innerHTML = '<tr><th class="keluar">Tanggal</th><th class="keluar">Kategori</th><th class="keluar">Detail</th><th class="keluar">Jumlah</th></tr>';
+
+  data.forEach(d => {
+    if(d.jenis == 'Pemasukan'){
+      tabelMasuk.innerHTML += `<tr><td>${d.tanggal}</td><td>${d.kategori}</td><td>${d.detail}</td><td>Rp ${d.jumlah.toLocaleString('id-ID')}</td></tr>`;
+      totalMasuk += d.jumlah;
+    } else {
+      tabelKeluar.innerHTML += `<tr><td>${d.tanggal}</td><td>${d.kategori}</td><td>${d.detail}</td><td>Rp ${d.jumlah.toLocaleString('id-ID')}</td></tr>`;
+      totalKeluar += d.jumlah;
+    }
+  });
+
+  document.getElementById('totalMasuk').innerText = totalMasuk.toLocaleString('id-ID');
+  document.getElementById('totalKeluar').innerText = totalKeluar.toLocaleString('id-ID');
+  document.getElementById('saldo').innerText = (totalMasuk - totalKeluar).toLocaleString('id-ID');
+}
+tampilkanData();
+</script>
+
+</body>
+</html>
