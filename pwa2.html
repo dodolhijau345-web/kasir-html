@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#dc3545">
+<title>Kasir Warung Madura</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  body { font-family: Arial; background: #f2f2f2; padding: 10px; }
+ .box { background: white; padding: 15px; border-radius: 10px; max-width: 600px; margin: auto; }
+  h2 { text-align: center; color: #dc3545; margin-bottom: 5px; }
+ .install-btn { background:#007bff; color:white; border:none; padding:12px; border-radius:5px; width:100%; margin-bottom:15px; display:none; font-weight:bold; }
+
+  /* INPUT JEJER KEBAWAH */
+ .form-input label { display:block; font-weight:bold; margin-top:10px; margin-bottom:5px; font-size:14px; }
+ .form-input input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing:border-box; }
+ .btn-tambah { background: #28a745; color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:15px; font-size:16px; }
+
+  table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; }
+  th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+  th { background: #007bff; color: white; }
+  td:nth-child(2) { text-align: left; } /* Nama barang rata kiri */
+ .btn-hapus { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+ .total-box { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 15px; }
+ .total { font-size: 26px; color: #dc3545; font-weight: bold; text-align:right; }
+ .bayar-box input { width:100%; padding:10px; margin-top:5px; box-sizing:border-box; }
+ .kembalian { font-size: 20px; color: #28a745; font-weight: bold; text-align:right; margin-top:5px; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <button id="installBtn" class="install-btn">📲 INSTALL APLIKASI</button>
+  <h2>🛒 KASIR WARUNG MADURA</h2>
+
+  <!-- INPUT JEJER KEBAWAH -->
+  <div class="form-input">
+    <label>Nama Barang</label>
+    <input type="text" id="namaBarang" placeholder="Contoh: Rokok, Kopi, Gula">
+
+    <label>Qty</label>
+    <input type="number" id="qtyBarang" placeholder="Contoh: 2" value="1">
+
+    <label>Harga Satuan Rp</label>
+    <input type="number" id="hargaBarang" placeholder="Contoh: 25000">
+
+    <button class="btn-tambah" onclick="tambahBarang()">+ TAMBAHKAN KE KERANJANG</button>
+  </div>
+
+  <!-- TABEL ADA KOLOM QTY DAN JUMLAH -->
+  <table id="tabel">
+    <tr><th>No</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Jumlah</th><th></th></tr>
+  </table>
+
+  <!-- TOTAL & BAYAR -->
+  <div class="total-box">
+    <h3>TOTAL BELANJA</h3>
+    <div class="total">Rp <span id="total">0</span></div>
+
+    <label style="font-weight:bold;">Uang Bayar</label>
+    <div class="bayar-box">
+      <input type="number" id="uangBayar" placeholder="Masukkan uang bayar" oninput="hitungKembalian()">
+    </div>
+    <div>Kembalian: <span class="kembalian">Rp <span id="kembalian">0</span></span></div>
+
+    <button class="btn-tambah" style="background:#dc3545;" onclick="reset()">RESET TRANSAKSI BARU</button>
+  </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('kasirMaduraQty')) || [];
+
+function tambahBarang(){
+  let nama = document.getElementById('namaBarang').value;
+  let qty = parseInt(document.getElementById('qtyBarang').value) || 1;
+  let harga = parseInt(document.getElementById('hargaBarang').value);
+
+  if(!nama ||!harga){ alert('Isi Nama dan Harga dulu'); return; }
+
+  let jumlah = qty * harga;
+  data.push({nama: nama, qty: qty, harga: harga, jumlah: jumlah});
+  localStorage.setItem('kasirMaduraQty', JSON.stringify(data));
+
+  document.getElementById('namaBarang').value = '';
+  document.getElementById('qtyBarang').value = '1';
+  document.getElementById('hargaBarang').value = '';
+  document.getElementById('namaBarang').focus();
+  tampilkan();
+}
+
+function hapus(index){
+  data.splice(index, 1);
+  localStorage.setItem('kasirMaduraQty', JSON.stringify(data));
+  tampilkan();
+}
+
+function tampilkan(){
+  let tabel = document.getElementById('tabel');
+  let total = 0;
+
+  tabel.innerHTML = '<tr><th>No</th><th>Barang</th><th>Qty</th><th>Harga</th><th>Jumlah</th><th></th></tr>';
+
+  data.forEach((d, i) => {
+    total += d.jumlah;
+    tabel.innerHTML += `
+      <tr>
+        <td>${i+1}</td>
+        <td>${d.nama}</td>
+        <td>${d.qty}</td>
+        <td>Rp ${d.harga.toLocaleString('id-ID')}</td>
+        <td>Rp ${d.jumlah.toLocaleString('id-ID')}</td>
+        <td><button class="btn-hapus" onclick="hapus(${i})">X</button></td>
+      </tr>
+    `;
+  });
+
+  document.getElementById('total').innerText = total.toLocaleString('id-ID');
+  hitungKembalian();
+}
+
+function hitungKembalian(){
+  let total = data.reduce((sum, d) => sum + d.jumlah, 0);
+  let bayar = parseInt(document.getElementById('uangBayar').value) || 0;
+  document.getElementById('kembalian').innerText = (bayar - total).toLocaleString('id-ID');
+}
+
+function reset(){
+  if(confirm('Mulai transaksi baru?')){
+    data = []; localStorage.removeItem('kasirMaduraQty');
+    document.getElementById('uangBayar').value = ''; tampilkan();
+  }
+}
+document.getElementById('hargaBarang').addEventListener('keypress', function(e){ if(e.key === 'Enter') tambahBarang(); });
+tampilkan();
+
+// ===== PWA 1 FILE SAJA =====
+const manifest = {
+  "name": "Kasir Warung Madura",
+  "short_name": "Kasir Madura",
+  "start_url": "./JEJERMADURA.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#dc3545",
+  "icons": [{"src": "https://placehold.co/192x192/dc3545/ffffff?text=KM", "sizes": "192x192", "type": "image/png"}]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+document.querySelector('link[rel="manifest"]').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+const swCode = `self.addEventListener('install', e => e.waitUntil(self.skipWaiting())); self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));`;
+const swBlob = new Blob([swCode], {type: 'text/javascript'});
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register(URL.createObjectURL(swBlob)); }
+
+let deferredPrompt;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async () => {
+  deferredPrompt.prompt(); await deferredPrompt.userChoice; installBtn.style.display = 'none';
+});
+</script>
+
+</body>
+</html>
