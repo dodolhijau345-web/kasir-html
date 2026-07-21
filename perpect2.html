@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#007bff">
+<title>PAUL IT LAUNDRY2</title>
+<style>
+  body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 600px; margin: auto; }
+  h2 { text-align: center; color: #007bff; margin-bottom: 15px; font-size:20px; }
+.grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px; }
+  label { display:block; font-weight:bold; margin-bottom:5px; font-size:14px; }
+  input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing:border-box; }
+  input[readonly] { background:#e9ecef; }
+.btn { border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:8px; font-size:16px; color:white; }
+.btn-tambah { background: #28a745; }
+.btn-cetak { background: #ffc107; color:black; }
+.btn-wa { background: #25D366; }
+.btn-reset { background: #6c757d; }
+.btn-ganti { background: #dc3545; font-size:14px; }
+  table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; }
+  th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+  th { background: #007bff; color: white; }
+  td:nth-child(2) { text-align: left; }
+.total-box { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 10px; text-align:right; }
+.total { font-size: 24px; color: #dc3545; font-weight: bold; }
+.rekap-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border:1px solid #ffc107; }
+.rekap-box h3 { margin-top:0; text-align:center; color:#856404; }
+
+.lock-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:#007bff; color:white; display:flex; justify-content:center; align-items:center; z-index:9999; }
+.lock-box { background:white; color:black; padding:30px; border-radius:10px; text-align:center; width:90%; max-width:400px; }
+.lock-box input { width:100%; padding:12px; margin:10px 0; box-sizing:border-box; font-size:18px; text-align:center; }
+
+  @media print {
+    body { background: white; }
+  .box { box-shadow: none; }
+  .btn,.btn-ganti,.rekap-box,.lock-screen { display: none!important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LAYAR KUNCI -->
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h3>🔒 PAUL IT LAUNDRY2</h3>
+    <input type="text" id="kodeInput" placeholder="Masukkan Kode Aktivasi">
+    <button class="btn btn-tambah" onclick="cekKode()">AKTIVASI</button>
+    <p style="font-size:12px; color:red;" id="pesanError"></p>
+  </div>
+</div>
+
+<!-- APLIKASI UTAMA -->
+<div class="box" id="mainApp" style="display:none;">
+  <h2>🧺 PAUL IT LAUNDRY2</h2>
+
+  <div class="grid-2">
+    <div><label>PELANGGAN</label><input type="text" id="pelanggan"></div>
+    <div><label>NO NOTA</label><input type="text" id="noNota" readonly></div>
+  </div>
+  <div class="grid-2">
+    <div><label>TGL MASUK</label><input type="date" id="tglMasuk"></div>
+    <div><label>TGL SELESAI</label><input type="date" id="tglSelesai"></div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <label>JENIS LAYAN</label>
+      <select id="jenisLayanan" onchange="setHarga()">
+        <option value="7000">Cuci Kiloan - Rp 7.000</option>
+        <option value="4000">Cuci Satuan - Rp 4.000</option>
+        <option value="2000">Setrika - Rp 2.000</option>
+      </select>
+    </div>
+    <div><label>QTY</label><input type="number" id="qty" value="1" min="1"></div>
+  </div>
+  <div class="grid-2">
+    <div><label>HARGA SATUAN</label><input type="number" id="harga" value="7000" readonly></div>
+    <div><label>&nbsp;</label><button class="btn btn-tambah" onclick="tambahNota()">TAMBAHKAN NOTA</button></div>
+  </div>
+
+  <button class="btn btn-cetak" onclick="cetakStruk()">CETAK STRUK</button>
+  <button class="btn btn-wa" onclick="kirimWA()">KIRIM WA</button>
+  <button class="btn btn-reset" onclick="notaBaru()">SELESAI / NOTA BARU</button>
+
+  <table id="tabelNota">
+    <tr><th>NO</th><th>LAYAN</th><th>QTY</th><th>HARGA</th><th>JUMLAH</th></tr>
+  </table>
+
+  <div class="total-box">
+    TOTAL NOTA <br>
+    <span class="total">Rp <span id="total">0</span></span>
+  </div>
+
+  <button class="btn btn-ganti" onclick="gantiLisensi()">GANTI LISENSI</button>
+
+  <div class="rekap-box">
+    <h3>REKAP PENJUALAN HARI INI</h3>
+    <p><b>Total Tunai:</b> Rp <span id="totalTunai">0</span></p>
+    <p><b>Total Kredit:</b> Rp <span id="totalKredit">0</span></p>
+  </div>
+</div>
+
+<script>
+const DAFTAR_KODE = ["PAUL-001", "PAUL-002", "PAUL-003", "DEMO-123"];
+let dataNota = [];
+let total = 0;
+let noUrut = 1;
+
+cekAktivasi();
+
+function cekAktivasi(){
+  if(localStorage.getItem('lisensiAktif') === 'true'){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('tglMasuk').valueAsDate = new Date();
+    document.getElementById('tglSelesai').valueAsDate = new Date();
+    buatNoNota();
+  } else {
+    document.getElementById('lockScreen').style.display = 'flex';
+  }
+}
+
+function cekKode(){
+  let kode = document.getElementById('kodeInput').value.toUpperCase().trim();
+  if(DAFTAR_KODE.includes(kode)){
+    localStorage.setItem('lisensiAktif', 'true');
+    localStorage.setItem('kodeDipakai', kode);
+    cekAktivasi();
+  } else {
+    document.getElementById('pesanError').innerText = 'Kode Salah!';
+  }
+}
+
+function gantiLisensi(){
+  if(confirm('Yakin mau ganti kode lisensi?')){
+    localStorage.removeItem('lisensiAktif');
+    location.reload();
+  }
+}
+
+function buatNoNota(){
+  document.getElementById('noNota').value = 'T' + String(noUrut).padStart(3,'0');
+}
+
+function setHarga(){
+  document.getElementById('harga').value = document.getElementById('jenisLayanan').value;
+}
+
+function tambahNota(){
+  let layanan = document.getElementById('jenisLayanan').options[document.getElementById('jenisLayanan').selectedIndex].text;
+  let qty = parseInt(document.getElementById('qty').value);
+  let harga = parseInt(document.getElementById('harga').value);
+  let jumlah = qty * harga;
+  total += jumlah;
+
+  dataNota.push({layanan, qty, harga, jumlah});
+  tampilkanNota();
+  document.getElementById('qty').value = 1;
+}
+
+function tampilkanNota(){
+  let tabel = document.getElementById('tabelNota');
+  tabel.innerHTML = '<tr><th>NO</th><th>LAYANAN</th><th>QTY</th><th>HARGA</th><th>JUMLAH</th></tr>';
+  dataNota.forEach((d,i)=>{
+    tabel.innerHTML += `<tr><td>${i+1}</td><td>${d.layanan}</td><td>${d.qty}</td><td>Rp ${d.harga.toLocaleString('id-ID')}</td><td>Rp ${d.jumlah.toLocaleString('id-ID')}</td></tr>`;
+  });
+  document.getElementById('total').innerText = total.toLocaleString('id-ID');
+}
+
+function notaBaru(){
+  if(confirm('Simpan dan buat nota baru?')){
+    document.getElementById('totalTunai').innerText = total.toLocaleString('id-ID');
+    dataNota = []; total = 0; noUrut++;
+    tampilkanNota();
+    buatNoNota();
+    document.getElementById('pelanggan').value = '';
+  }
+}
+
+function cetakStruk(){ window.print(); }
+
+function kirimWA(){
+  let pelanggan = document.getElementById('pelanggan').value || 'Pelanggan';
+  let pesan = `*PAUL IT LAUNDRY2*%0A`;
+  pesan += `No: ${document.getElementById('noNota').value}%0A`;
+  pesan += `Nama: ${pelanggan}%0A`;
+  pesan += `Total: Rp ${total.toLocaleString('id-ID')}%0A%0ATerima kasih`;
+  window.open(`https://wa.me/?text=${pesan}`);
+}
+
+// ====== KODE PWA BIAR BISA DI INSTALL ======
+const manifestData = {"name":"Paul IT Laundry2","short_name":"Paul Laundry","start_url":"./paul-it.html","display":"standalone","background_color":"#f2f2f2","theme_color":"#007bff","icons":[{"src":"https://placehold.co/512x512/007bff/ffffff?text=PL","sizes":"512x512","type":"image/png"}]};
+const manifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifestData)],{type:'application/json'}));
+document.head.insertAdjacentHTML('beforeend',`<link rel="manifest" href="${manifestURL}">`);
+const swURL = URL.createObjectURL(new Blob([`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request)))`],{type:'text/javascript'}));
+if('serviceWorker' in navigator){ navigator.serviceWorker.register(swURL); }
+</script>
+</body>
+</html>
