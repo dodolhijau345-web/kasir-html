@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#007bff">
+<title>Kasir Laundry Paul IT</title>
+<style>
+  body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 700px; margin: auto; }
+  h2 { text-align: center; color: #007bff; margin-bottom: 5px; font-size:18px; }
+.info-nota { display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; border-bottom:1px dashed #ccc; padding-bottom:10px; }
+.grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.form-input label { display:block; font-weight:bold; margin-top:10px; font-size:14px; }
+.form-input select,.form-input input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing:border-box; }
+.form-input input[readonly] { background:#e9ecef; }
+.btn { border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:10px; font-size:16px; color:white; }
+.btn-tambah { background: #28a745; }
+.btn-reset { background: #6c757d; }
+.btn-cetak { background: #ffc107; color:black; }
+.btn-wa { background: #25D366; }
+.btn-ganti { background: #6c757d; font-size:14px; padding:8px; }
+  table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; }
+  th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+  th { background: #007bff; color: white; }
+  td:nth-child(2) { text-align: left; }
+.btn-hapus { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+.total-box { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 10px; }
+.total { font-size: 28px; color: #dc3545; font-weight: bold; text-align:right; }
+.total.piutang { color: #dc3545; font-size: 20px; }
+
+.pilih-bayar { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+.btn-tunai { background: #28a745; }
+.btn-kredit { background: #dc3545; }
+.btn-tunai.active,.btn-kredit.active { box-shadow: 0 0 0 3px #000; }
+
+.ringkasan-box { background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px; border:1px solid #28a745; }
+.ringkasan-box h3 { margin-top:0; text-align:center; color:#155724; font-size:16px; }
+.ringkasan-item { display:flex; justify-content:space-between; font-size:16px; margin:8px 0; }
+.kolom-tunai { color:#28a745; font-weight:bold; }
+.kolom-kredit { color:#dc3545; font-weight:bold; }
+.rekap-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 80px; border:1px solid #ffc107; }
+.rekap-box h3 { margin-top:0; text-align:center; color:#856404; }
+.rekap-tabel th { background:#856404!important; font-size:12px; }
+.rekap-tabel td { font-size:12px; }
+.lock-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:#007bff; color:white; display:flex; justify-content:center; align-items:center; z-index:9999; }
+.lock-box { background:white; color:black; padding:30px; border-radius:10px; text-align:center; width:90%; max-width:400px; }
+.lock-box input { width:100%; padding:12px; margin:10px 0; box-sizing:border-box; font-size:18px; text-align:center; }
+  @media print {
+    body { background: white; margin:0; padding:0; }
+.box { width: 300px; max-width: 300px; margin:0; padding:5px; border-radius:0; box-shadow: none; }
+.btn,.lock-screen,.form-input,.btn-ganti,.rekap-box,.ringkasan-box,.pilih-bayar { display: none!important; }
+    h2 { font-size:14px; margin:0; color:black!important; }
+.info-nota { font-size:10px; border-bottom:1px dashed black; }
+    table { font-size:10px; margin-top:5px; }
+    th { background: black!important; color: white!important; border:1px solid black; }
+    td { border:none; border-bottom:1px dotted #ccc; padding:3px; }
+.total-box { background: white!important; padding:5px 0; margin-top:5px; border-top:1px dashed black; }
+.total { font-size:18px; color: black!important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h3>🔒 KASIR LAUNDRY PAUL IT</h3>
+    <input type="text" id="kodeInput" placeholder="Masukkan Kode Aktivasi">
+    <button class="btn btn-tambah" onclick="cekKode()">AKTIVASI</button>
+    <p style="font-size:12px; color:rgba(131, 44, 17, 0.253);" id="pesanError"></p>
+  </div>
+</div>
+
+<div class="box" id="mainApp" style="display:none;">
+  <h2>🧺 KASIR LAUNDRY PAUL IT</h2>
+  <div class="info-nota">
+    <span><b>No Nota:</b> <span id="noNotaView"></span></span>
+    <span><b>Tgl:</b> <span id="tanggal"></span></span>
+  </div>
+
+  <div class="grid">
+    <div class="form-input">
+      <label>Nama Pelanggan</label>
+      <input type="text" id="namaPelanggan" placeholder="Nama Pelanggan">
+    </div>
+    <div class="form-input">
+      <label>No Nota</label>
+      <input type="text" id="noNota" readonly>
+    </div>
+    <div class="form-input">
+      <label>Jenis Layanan</label>
+      <select id="jenisLayanan" onchange="setHarga()">
+        <option value="7000">Cuci Kiloan - Rp 7.000</option>
+        <option value="4000">Cuci Satuan - Rp 4.000</option>
+        <option value="2000">Setrika - Rp 2.000</option>
+      </select>
+    </div>
+    <div class="form-input"><label>QTY</label><input type="number" id="qtyBarang" value="1" autofocus></div>
+    <div class="form-input" style="grid-column: span 2;"><label>Harga Satuan</label><input type="number" id="hargaBarang" value="7000" readonly></div>
+  </div>
+
+  <button class="btn btn-tambah" onclick="tambahBarang()">+ TAMBAH KE NOTA</button>
+
+  <div class="pilih-bayar">
+    <button class="btn btn-tunai" id="btnTunai" onclick="pilihBayar('TUNAI')">💵 TUNAI</button>
+    <button class="btn btn-kredit" id="btnKredit" onclick="pilihBayar('KREDIT')">📝 KREDIT</button>
+  </div>
+
+  <button class="btn btn-cetak" onclick="cetakStruk()">🖨️ CETAK STRUK</button>
+  <button class="btn btn-wa" onclick="kirimWA()">📲 KIRIM KE WA</button>
+
+  <button class="btn btn-reset" onclick="resetNota()">SELESAI / NOTA BARU</button>
+
+  <table id="tabel"><tr><th>No</th><th>Layanan</th><th>QTY</th><th>Harga</th><th>Jumlah</th><th></th></tr></table>
+
+  <div class="total-box">
+    <h3 id="judulTotal">TOTAL NOTA INI</h3>
+    <div class="total" id="boxTotal">Rp <span id="total">0</span></div>
+  </div>
+
+  <button class="btn btn-ganti" onclick="gantiLisensi()">🔑 GANTI KODE LISENSI</button>
+
+  <div class="rekap-box">
+    <h3>📋 REKAP PENJUALAN PER NOTA</h3>
+    <table class="rekap-tabel" id="tabelRekap"><tr><th>No Nota</th><th>Tanggal</th><th>TUNAI</th><th>KREDIT</th></tr></table>
+
+    <div class="ringkasan-box">
+      <h3>📊 RINGKASAN HARIAN</h3>
+      <div class="ringkasan-item">
+        <span>Total Tunai:</span>
+        <span class="kolom-tunai">Rp <span id="grandTunai">0</span></span>
+      </div>
+      <div class="ringkasan-item">
+        <span>Total Kredit:</span>
+        <span class="kolom-kredit">Rp <span id="grandKredit">0</span></span>
+      </div>
+    </div>
+
+    <button class="btn btn-reset" style="background:#dc3545; margin-top:15px;" onclick="resetRekap()">RESET REKAP HARIAN</button>
+  </div>
+</div>
+
+<script>
+const DAFTAR_KODE = ["PAUL-001", "PAUL-002", "PAUL-003", "DEMO-123"];
+let dataNota = JSON.parse(localStorage.getItem('kasirNota')) || [];
+let dataRekap = JSON.parse(localStorage.getItem('kasirRekap')) || [];
+let statusBayarSekarang = 'TUNAI';
+
+document.getElementById('qtyBarang').addEventListener('keypress', function(e){
+  if(e.key === 'Enter'){ tambahBarang(); }
+});
+
+function cekAktivasi(){
+  if(localStorage.getItem('lisensiAktif') === 'true'){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    buatNoNota();
+    tampilkanTanggal();
+    tampilkanNota();
+    tampilkanRekap();
+    hitungRingkasan();
+    pilihBayar('TUNAI');
+    document.getElementById('qtyBarang').focus();
+  } else {
+    document.getElementById('lockScreen').style.display = 'flex';
+  }
+}
+function cekKode(){
+  let kode = document.getElementById('kodeInput').value.toUpperCase().trim();
+  if(DAFTAR_KODE.includes(kode)){
+    localStorage.setItem('lisensiAktif', 'true');
+    localStorage.setItem('kodeDipakai', kode);
+    cekAktivasi();
+  } else {
+    document.getElementById('pesanError').innerText = 'Kode Salah!';
+  }
+}
+function buatNoNota(){
+  let keyUrut = 'noUrutAbjad';
+  let urut = parseInt(localStorage.getItem(keyUrut)) || 1;
+  let huruf = '';
+  let nomor = urut;
+  let temp = nomor;
+  while (temp > 0) {
+    let rem = (temp - 1) % 26;
+    huruf = String.fromCharCode(65 + rem) + huruf;
+    temp = Math.floor((temp - 1) / 26);
+  }
+  let no = huruf + nomor;
+  document.getElementById('noNota').value = no;
+  document.getElementById('noNotaView').innerText = no;
+  localStorage.setItem(keyUrut, urut + 1);
+}
+function tampilkanTanggal(){
+  let now = new Date();
+  let tgl = now.toLocaleDateString('id-ID');
+  let jam = now.toLocaleTimeString('id-ID');
+  document.getElementById('tanggal').innerText = tgl + ' '+ jam;
+}
+function setHarga(){
+  document.getElementById('hargaBarang').value = document.getElementById('jenisLayanan').value;
+}
+
+function pilihBayar(status){
+  statusBayarSekarang = status;
+  document.getElementById('btnTunai').classList.remove('active');
+  document.getElementById('btnKredit').classList.remove('active');
+  if(status === 'TUNAI') {
+    document.getElementById('btnTunai').classList.add('active');
+    document.getElementById('judulTotal').innerText = 'TOTAL NOTA INI';
+  }
+  else {
+    document.getElementById('btnKredit').classList.add('active');
+    document.getElementById('judulTotal').innerText = 'STATUS PEMBAYARAN';
+  }
+  tampilkanNota();
+  updateRekapOtomatis();
+}
+
+function updateRekapOtomatis(){
+  if(dataNota.length === 0) return;
+  let totalNota = dataNota.reduce((sum, d) => sum + d.jumlah, 0);
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = dataNota[0].noNota;
+  let tanggal = document.getElementById('tanggal').innerText;
+
+  let tunai = 0;
+  let kredit = 0;
+  if(statusBayarSekarang === 'TUNAI') tunai = totalNota;
+  else kredit = totalNota;
+
+  let index = dataRekap.findIndex(d => d.noNota === noNota);
+  if(index > -1){
+    dataRekap[index].tunai = tunai;
+    dataRekap[index].kredit = kredit;
+    dataRekap[index].nama = nama;
+    dataRekap[index].tanggal = tanggal;
+    dataRekap[index].total = totalNota;
+  } else {
+    dataRekap.push({noNota: noNota, tanggal: tanggal, nama: nama, total: totalNota, tunai: tunai, kredit: kredit});
+  }
+  localStorage.setItem('kasirRekap', JSON.stringify(dataRekap));
+  tampilkanRekap();
+  hitungRingkasan();
+}
+
+function tambahBarang(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let layanan = document.getElementById('jenisLayanan').options[document.getElementById('jenisLayanan').selectedIndex].text;
+  let qty = parseInt(document.getElementById('qtyBarang').value) || 1;
+  let harga = parseInt(document.getElementById('hargaBarang').value);
+  let jumlah = qty * harga;
+
+  dataNota.push({noNota: noNota, nama: nama, layanan: layanan, qty: qty, harga: harga, jumlah: jumlah});
+  localStorage.setItem('kasirNota', JSON.stringify(dataNota));
+
+  document.getElementById('qtyBarang').value = '1';
+  document.getElementById('qtyBarang').focus();
+  tampilkanNota();
+  updateRekapOtomatis();
+}
+function hapus(index){
+  dataNota.splice(index, 1);
+  localStorage.setItem('kasirNota', JSON.stringify(dataNota));
+  tampilkanNota();
+  updateRekapOtomatis();
+}
+function tampilkanNota(){
+  let tabel = document.getElementById('tabel'); let total = 0;
+  tabel.innerHTML = '<tr><th>No</th><th>Layanan</th><th>QTY</th><th>Harga</th><th>Jumlah</th><th></th></tr>';
+  dataNota.forEach((d, i) => {
+    total += d.jumlah;
+    tabel.innerHTML += `<tr><td>${i+1}</td><td>${d.layanan}</td><td>${d.qty}</td><td>Rp ${d.harga.toLocaleString('id-ID')}</td><td>Rp ${d.jumlah.toLocaleString('id-ID')}</td><td><button class="btn-hapus" onclick="hapus(${i})">X</button></td></tr>`;
+  });
+
+  if(statusBayarSekarang === 'KREDIT'){
+    document.getElementById('boxTotal').innerHTML = `PIUTANG BELUM DIBAYAR<br><small>Rp ${total.toLocaleString('id-ID')}</small>`;
+    document.getElementById('boxTotal').classList.add('piutang');
+  } else {
+    document.getElementById('boxTotal').innerHTML = `Rp <span id="total">${total.toLocaleString('id-ID')}</span>`;
+    document.getElementById('boxTotal').classList.remove('piutang');
+  }
+}
+
+function resetNota(){
+  if(dataNota.length === 0) return alert('Nota masih kosong');
+  if(confirm('Simpan nota & buat nota baru?')){
+    dataNota = [];
+    localStorage.removeItem('kasirNota');
+    document.getElementById('namaPelanggan').value = '';
+    buatNoNota();
+    tampilkanTanggal();
+    tampilkanNota();
+    pilihBayar('TUNAI');
+  }
+}
+
+function hitungRingkasan(){
+  let grandTunai = 0;
+  let grandKredit = 0;
+  dataRekap.forEach(d => {
+    grandTunai += d.tunai;
+    grandKredit += d.kredit;
+  });
+  document.getElementById('grandTunai').innerText = grandTunai.toLocaleString('id-ID');
+  document.getElementById('grandKredit').innerText = grandKredit.toLocaleString('id-ID');
+}
+
+function tampilkanRekap(){
+  let tabel = document.getElementById('tabelRekap');
+  tabel.innerHTML = '<tr><th>No Nota</th><th>Tanggal</th><th>TUNAI</th><th>KREDIT</th></tr>';
+
+  dataRekap.slice().reverse().forEach((d) => {
+    let tunaiText = d.tunai > 0? `Rp ${d.tunai.toLocaleString('id-ID')}` : '-';
+    let kreditText = d.kredit > 0? `Rp ${d.kredit.toLocaleString('id-ID')}` : '-';
+    let tgl = d.tanggal? d.tanggal.split(' +')[0] : '-';
+    tabel.innerHTML += `<tr><td>${d.noNota}</td><td>${tgl}</td><td class="kolom-tunai">${tunaiText}</td><td class="kolom-kredit">${kreditText}</td></tr>`;
+  });
+}
+
+function resetRekap(){
+  if(confirm('YAKIN mau hapus semua riwayat rekap per nota?')){
+    dataNota = [];
+    dataRekap = [];
+    localStorage.removeItem('kasirNota');
+    localStorage.removeItem('kasirRekap');
+    buatNoNota();
+    tampilkanNota();
+    tampilkanRekap();
+    hitungRingkasan();
+  }
+}
+function gantiLisensi(){
+  if(confirm('Yakin mau ganti kode lisensi?')){
+    localStorage.removeItem('lisensiAktif');
+    location.reload();
+  }
+}
+function cetakStruk(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let status = statusBayarSekarang;
+  let struk = `*NOTA LAUNDRY PAUL IT*%0A`;
+  struk += `No: ${document.getElementById('noNota').value}%0A`;
+  struk += `Nama: ${nama}%0A`;
+  struk += `Status: ${status}%0A`;
+  struk += `Tgl: ${document.getElementById('tanggal').innerText}%0A%0A`;
+  dataNota.forEach((d,i)=>{ struk += `${i+1}. ${d.layanan} ${d.qty} = Rp ${d.jumlah.toLocaleString('id-ID')}%0A` });
+  if(status === 'KREDIT') struk += `%0A*PIUTANG BELUM DIBAYAR*`;
+  else struk += `%0A*TOTAL: Rp ${document.getElementById('total').innerText}*`;
+  struk += `%0A%0ATerima kasih`;
+  window.print();
+}
+function kirimWA(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let total = document.getElementById('total').innerText;
+  let status = statusBayarSekarang;
+  let pesan = `*NOTA LAUNDRY PAUL IT*%0A`;
+  pesan += `No: ${noNota}%0A`;
+  pesan += `Nama: ${nama}%0A`;
+  pesan += `Status: ${status}%0A`;
+  pesan += `Tgl: ${document.getElementById('tanggal').innerText}%0A%0A`;
+  dataNota.forEach((d,i)=>{ pesan += `${i+1}. ${d.layanan} ${d.qty} = Rp ${d.jumlah.toLocaleString('id-ID')}%0A` });
+  if(status === 'KREDIT') pesan += `%0A*PIUTANG BELUM DIBAYAR*`;
+  else pesan += `%0A*TOTAL: Rp ${total}*`;
+  pesan += `%0A%0ATerima kasih`;
+  window.open(`https://wa.me/?text=${pesan}`);
+}
+
+cekAktivasi();
+
+// ====== KODE PWA TAMBAHAN SAJA - TIDAK MENGUBAH KODE BAPAK ======
+const manifestData = {"name":"Kasir Laundry Paul IT","short_name":"Laundry Paul","start_url":"./paul17.html","display":"standalone","background_color":"#f2f2f2","theme_color":"#007bff","icons":[{"src":"https://placehold.co/512x512/007bff/ffffff?text=LP","sizes":"512x512","type":"image/png"}]};
+const manifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifestData)],{type:'application/json'}));
+document.head.insertAdjacentHTML('beforeend',`<link rel="manifest" href="${manifestURL}">`);
+const swURL = URL.createObjectURL(new Blob([`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request)))`],{type:'text/javascript'}));
+if('serviceWorker' in navigator){ navigator.serviceWorker.register(swURL); }
+</script>
+</body>
+</html>
