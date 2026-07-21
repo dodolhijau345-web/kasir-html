@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#8B4513">
+<title>TOKO BERAS</title>
+<style>
+  body { font-family: Arial; background: #f5f5dc; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 600px; margin: auto; }
+  h2 { text-align: center; color: #8B4513; margin-bottom: 15px; font-size:22px; }
+.grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px; }
+  label { display:block; font-weight:bold; margin-bottom:5px; font-size:14px; }
+  input, select { width: 100%; padding: 10px; border: 2px solid #8B4513; border-radius: 5px; font-size: 16px; box-sizing:border-box; }
+  input[readonly] { background:#e9ecef; }
+  input#total { font-size: 24px; font-weight: bold; text-align: center; color: #dc3545; height: 50px; } /* TOTAL DIPERBESAR */
+.btn { border: none; padding: 14px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:10px; font-size:16px; color:white; }
+.btn-simpan { background: #28a745; }
+.btn-baru { background: #007bff; }
+.btn-reset { background: #ffc107; color:black; }
+.btn-ganti { background: #dc3545; }
+.rekap-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border:2px solid #8B4513; overflow-x:auto; }
+.rekap-box h3 { margin-top:0; text-align:center; color:#8B4513; }
+  table { width:100%; border-collapse: collapse; margin-top:10px; font-size:14px; table-layout: fixed; }
+  th, td { border: 1px solid #8B4513; padding: 8px; text-align: center; }
+  th { background: #8B4513; color: white; }
+  th:nth-child(1), td:nth-child(1) { width: 30%; } /* NO NOTA */
+  th:nth-child(2), td:nth-child(2) { width: 70%; text-align: right; font-size: 18px; font-weight: bold; } /* TOTAL DIPERBESAR */
+  tfoot td { font-weight:bold; background:#ffeeba; font-size: 20px; }
+
+.lock-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:#8B4513; color:white; display:flex; justify-content:center; align-items:center; z-index:9999; }
+.lock-box { background:white; color:black; padding:30px; border-radius:10px; text-align:center; width:90%; max-width:400px; }
+.lock-box input { width:100%; padding:12px; margin:10px 0; box-sizing:border-box; font-size:18px; text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- LAYAR KUNCI -->
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h3>🌾 TOKO BERAS</h3>
+    <input type="text" id="kodeInput" placeholder="Masukkan Kode Lisensi">
+    <button class="btn btn-simpan" onclick="cekKode()">AKTIVASI</button>
+    <p style="font-size:12px; color:red;" id="pesanError"></p>
+  </div>
+</div>
+
+<!-- APLIKASI UTAMA -->
+<div class="box" id="mainApp" style="display:none;">
+  <h2>TOKO BERAS</h2>
+
+  <div class="grid-2">
+    <div><label>PELANGGAN</label><input type="text" id="pelanggan" placeholder="Nama Pelanggan"></div>
+    <div><label>NOTA</label><input type="text" id="noNota" readonly></div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <label>JENIS BERAS</label>
+      <input list="listBeras" id="jenisBeras" placeholder="Ketik/Pilih Jenis" onkeyup="hitungTotal()">
+      <datalist id="listBeras">
+        <option value="Beras Pandan Wangi">
+        <option value="Beras IR64">
+        <option value="Beras Mentik Susu">
+        <option value="Beras Cianjur">
+      </datalist>
+    </div>
+    <div><label>HARGA /KG</label><input type="number" id="harga" placeholder="Input Harga" onkeyup="hitungTotal()"></div>
+  </div>
+
+  <div class="grid-2">
+    <div><label>QTY (KG)</label><input type="number" id="qty" value="1" min="1" onkeyup="hitungTotal()"></div>
+  </div>
+
+  <div> <!-- INI KOLOM TOTAL SATU BARIS PENUH -->
+    <label>TOTAL BAYAR</label>
+    <input type="text" id="total" readonly>
+  </div>
+
+  <button class="btn btn-baru" onclick="gantiNota()">GANTI NOTA / SIMPAN</button>
+  <button class="btn btn-ganti" onclick="gantiLisensi()">GANTI KODE LISENSI</button>
+
+  <div class="rekap-box">
+    <h3>REKAP HARIAN</h3>
+    <table id="tabelRekap">
+      <thead>
+        <tr><th>NO NOTA</th><th>TOTAL</th></tr>
+      </thead>
+      <tbody id="isiRekap"></tbody>
+      <tfoot>
+        <tr><td>TOTAL</td><td id="grandTotal">Rp 0</td></tr>
+      </tfoot>
+    </table>
+    <button class="btn btn-reset" onclick="resetRekap()">RESET REKAP HARIAN</button>
+  </div>
+</div>
+
+<script>
+const DAFTAR_KODE = ["BERAS-001", "BERAS-002", "BERAS-003", "DEMO-BERAS"];
+let noUrut = parseInt(localStorage.getItem('noUrutBeras')) || 1;
+let dataRekap = JSON.parse(localStorage.getItem('dataRekapBeras')) || [];
+
+cekAktivasi();
+
+function cekAktivasi(){
+  if(localStorage.getItem('lisensiBeras') === 'true'){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    buatNoNota();
+    tampilkanRekap();
+  } else {
+    document.getElementById('lockScreen').style.display = 'flex';
+  }
+}
+
+function cekKode(){
+  let kode = document.getElementById('kodeInput').value.toUpperCase().trim();
+  if(DAFTAR_KODE.includes(kode)){
+    localStorage.setItem('lisensiBeras', 'true');
+    localStorage.setItem('kodeBeras', kode);
+    cekAktivasi();
+  } else {
+    document.getElementById('pesanError').innerText = 'Kode Salah!';
+  }
+}
+
+function gantiLisensi(){
+  if(confirm('Yakin mau ganti kode lisensi?')){
+    localStorage.removeItem('lisensiBeras');
+    location.reload();
+  }
+}
+
+function buatNoNota(){
+  document.getElementById('noNota').value = 'BR' + String(noUrut).padStart(3,'0');
+}
+
+function hitungTotal(){
+  let harga = parseFloat(document.getElementById('harga').value) || 0;
+  let qty = parseFloat(document.getElementById('qty').value) || 0;
+  let total = harga * qty;
+  document.getElementById('total').value = 'Rp ' + total.toLocaleString('id-ID');
+}
+
+function gantiNota(){ // OTOMATIS SIMPAN
+  let harga = parseFloat(document.getElementById('harga').value) || 0;
+  let qty = parseFloat(document.getElementById('qty').value) || 0;
+  let total = harga * qty;
+  let noNota = document.getElementById('noNota').value;
+
+  if(total > 0){
+    dataRekap.push({noNota, total});
+    localStorage.setItem('dataRekapBeras', JSON.stringify(dataRekap));
+    noUrut++;
+    localStorage.setItem('noUrutBeras', noUrut);
+    tampilkanRekap();
+  }
+
+  // Kosongkan form
+  document.getElementById('pelanggan').value = '';
+  document.getElementById('jenisBeras').value = '';
+  document.getElementById('harga').value = '';
+  document.getElementById('qty').value = 1;
+  document.getElementById('total').value = '';
+  buatNoNota();
+  document.getElementById('pelanggan').focus();
+}
+
+function resetRekap(){
+  if(confirm('YAKIN mau reset rekap harian? Semua data akan hilang')){
+    dataRekap = [];
+    noUrut = 1;
+    localStorage.removeItem('dataRekapBeras');
+    localStorage.setItem('noUrutBeras', 1);
+    tampilkanRekap();
+    gantiNota();
+    alert('Rekap harian sudah direset');
+  }
+}
+
+function tampilkanRekap(){
+  let tbody = document.getElementById('isiRekap');
+  tbody.innerHTML = '';
+  let grand = 0;
+
+  dataRekap.forEach((d)=>{
+    grand += d.total;
+    tbody.innerHTML += `<tr><td>${d.noNota}</td><td>Rp ${d.total.toLocaleString('id-ID')}</td></tr>`;
+  });
+
+  document.getElementById('grandTotal').innerText = 'Rp ' + grand.toLocaleString('id-ID');
+}
+
+// ====== KODE PWA BIAR BISA DI INSTALL FULLSCREEN ======
+const manifestData = {
+  "name":"Toko Beras",
+  "short_name":"Toko Beras",
+  "start_url":"./toko-beras.html",
+  "display":"standalone",
+  "background_color":"#f5f5dc",
+  "theme_color":"#8B4513",
+  "icons":[{"src":"https://placehold.co/512x512/8B4513/ffffff?text=TB","sizes":"512x512","type":"image/png"}]
+};
+const manifestURL = URL.createObjectURL(new Blob([JSON.stringify(manifestData)],{type:'application/json'}));
+document.head.insertAdjacentHTML('beforeend',`<link rel="manifest" href="${manifestURL}">`);
+const swURL = URL.createObjectURL(new Blob([`self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request)))`],{type:'text/javascript'}));
+if('serviceWorker' in navigator){ navigator.serviceWorker.register(swURL); }
+</script>
+</body>
+</html>
