@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paul IT Laundry2</title>
+    <link rel="manifest" href="manifest-paul.json">
+    <meta name="theme-color" content="#007bff">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f2f2f2; }
+        h1 { color: #007bff; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Paul IT Laundry2</h1>
+        <p>Selamat datang di Aplikasi Kasir Laundry</p>
+        <button onclick="alert('Aplikasi siap dipakai offline!')">Coba Offline</button>
+    </div>
+    <script>
+        // Daftarin Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw-paul.js');
+        }
+    </script>
+</body>
+</html>
