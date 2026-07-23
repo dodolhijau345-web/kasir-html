@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#007bff">
+<meta name="mobile-web-app-capable" content="yes">
+<title>VERSI - 21</title>
+<link rel="manifest" href="manifest-paul.json">
+<style>
+  body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 5px; max-width: 600px; margin: auto; border:1px solid #ccc; }
+  h2 { text-align: center; margin-bottom: 15px; }
+.row { display:flex; gap:10px; margin-bottom:10px; align-items:center; }
+.row label { width:120px; border:1px solid #000; padding:8px; text-align:center; font-weight:bold; background:#eee; }
+.row input,.row select { flex:1; padding: 8px; border: 1px solid #000; font-size: 16px; }
+.grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin:10px 0; }
+.grid-3 { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin:10px 0; }
+.btn { border: 1px solid #000; padding: 10px; font-weight: bold; cursor: pointer; width:100%; font-size:15px; }
+.btn-tunai { background: #28a745; color:white; }
+.btn-kredit { background: #dc3545; color:white; }
+.btn-cetak { background: #ffc107; }
+.btn-tambah { background: #007bff; color:white; }
+.btn-selesai { background: #17a2b8; color:white; grid-column: span 3; }
+.btn-lisensi { background: #6c757d; color:white; }
+.btn-wa { background: #25D366; color:white; }
+.btn-proses { background: #ffc107; font-size:12px; padding:4px; }
+.btn-selesai2 { background: #28a745; color:white; font-size:12px; padding:4px; }
+.btn-x { background: #dc3545; color:white; font-size:12px; padding:4px 8px; border:none; }
+  table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; border:1px solid #000; }
+  th, td { border: 1px solid #000; padding: 6px; text-align: center; }
+  th { background: #eee; }
+.status-proses { color: #ffc107; font-weight:bold; }
+.status-selesai { color: #28a745; font-weight:bold; }
+.total-box { text-align:right; margin-top:5px; font-size:15px; }
+.total-box span { font-weight:bold; }
+.grand { font-size:18px; color:#007bff; border-top:2px solid #000; padding-top:5px; }
+.lock-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:#007bff; display:flex; justify-content:center; align-items:center; z-index:9999; }
+.lock-box { background:white; padding:30px; border-radius:10px; text-align:center; width:90%; }
+  @media print { body{background:white;}.box{border:none;}.btn,.lock-screen{display:none!important;} }
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h3>🔒 VERSI - 21</h3>
+    <input type="text" id="kodeInput" placeholder="Masukkan Kode" style="width:100%; padding:12px; text-align:center;">
+    <button class="btn btn-tunai" onclick="cekKode()">AKTIVASI</button>
+    <p style="color:red;" id="pesanError"></p>
+  </div>
+</div>
+
+<div class="box" id="mainApp" style="display:none;">
+  <h2>VERSI - 21</h2>
+
+  <div class="row"><label>NAMA</label><input type="text" id="nama"></div>
+  <div class="row"><label>TGL MASUK</label><input type="date" id="tglMasuk"></div>
+  <div class="row"><label>TGL SELESAI</label><input type="date" id="tglSelesai"></div>
+  <div class="row"><label>NO ANTRIAN</label><input type="text" id="noAntrian" readonly></div>
+
+  <hr>
+  <h4 style="text-align:center;">INPUT LAYAN</h4>
+  <div class="row"><label>LAYANAN</label>
+    <select id="layanan" onchange="setHarga()">
+      <option value="7000">CUCI KILOAN</option>
+      <option value="4000">CUCI SATUAN</option>
+      <option value="2000">SETRIKA</option>
+    </select>
+  </div>
+  <div class="row"><label>HARGA</label><input type="number" id="harga" value="7000" readonly></div>
+  <div class="row"><label>QTY</label><input type="number" id="qty" value="1"></div>
+  <div class="row"><label>SUB TOTAL</label><input type="number" id="subTotal" readonly></div>
+
+  <button class="btn btn-tambah" onclick="tambahNota()">+ TAMBAH NOTA</button>
+
+  <table id="tabelNotaSekarang">
+    <tr><th>LAYAN</th><th>QTY</th><th>SUB TOTAL</th><th>HAPUS</th></tr>
+  </table>
+  <div class="total-box grand">TOTAL SEMUA : Rp <span id="totalSemua">0</span></div>
+
+  <div class="grid-2" style="margin-top:10px;">
+    <button class="btn btn-tunai" onclick="pilihBayar('TUNAI')">TUNAI</button>
+    <button class="btn btn-kredit" onclick="pilihBayar('KREDIT')">KREDIT</button>
+  </div>
+
+  <div class="grid-3">
+    <button class="btn btn-cetak" onclick="cetakStruk()">CETAK</button>
+    <button class="btn btn-wa" onclick="kirimWA()">WA</button>
+    <button class="btn btn-lisensi" onclick="gantiLisensi()">LISENSI</button>
+  </div>
+  <button class="btn btn-selesai" onclick="selesaiTransaksi()">SELESAI / MASUK REKAP</button>
+
+  <div class="rekap">
+    <h3>Rekap Penjualan</h3>
+    <table id="tabelRekap">
+      <tr><th>NO ANTRIAN</th><th>TUNAI</th><th>KREDIT</th></tr>
+    </table>
+    <div class="total-box">TOTAL TUNAI : Rp <span id="totalTunai">0</span></div>
+    <div class="total-box">TOTAL KREDIT : Rp <span id="totalKredit">0</span></div>
+    <div class="total-box grand">GRAND TOTAL : Rp <span id="grandTotal">0</span></div>
+    <button class="btn btn-kredit" onclick="resetRekap()">RESET REKAP</button>
+  </div>
+
+  <hr>
+  <h3 style="text-align:center;">STATUS CUCIAN</h3>
+  <table id="tabelProses">
+    <tr><th>NO ANTRIAN</th><th>PROSES</th><th>SELESAI</th><th>STATUS</th><th>X</th></tr>
+  </table>
+
+</div>
+
+<script>
+const DAFTAR_KODE = ["PAUL-001", "PAUL-002", "PAUL-003"];
+let dataRekap = JSON.parse(localStorage.getItem('kasirRekap21')) || [];
+let dataProses = JSON.parse(localStorage.getItem('kasirProses21')) || [];
+let notaSekarang = [];
+let statusBayar = 'TUNAI';
+let noUrut = parseInt(localStorage.getItem('noUrut21')) || 1;
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw-paul.js');
+}
+
+document.getElementById('qty').oninput = hitungSub;
+document.getElementById('layanan').onchange = hitungSub;
+
+function cekAktivasi(){
+  if(localStorage.getItem('lisensiAktif21') === 'true'){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    document.getElementById('noAntrian').value = 'A' + noUrut;
+    tampilkanRekap();
+    tampilkanProses();
+  } else {
+    document.getElementById('lockScreen').style.display = 'flex';
+  }
+}
+function cekKode(){
+  let kode = document.getElementById('kodeInput').value.toUpperCase().trim();
+  if(DAFTAR_KODE.includes(kode)){
+    localStorage.setItem('lisensiAktif21', 'true');
+    cekAktivasi();
+  } else {
+    document.getElementById('pesanError').innerText = 'Kode Salah!';
+  }
+}
+function gantiLisensi(){
+  localStorage.removeItem('lisensiAktif21');
+  location.reload();
+}
+function setHarga(){
+  document.getElementById('harga').value = document.getElementById('layanan').value;
+  hitungSub();
+}
+function hitungSub(){
+  let qty = parseInt(document.getElementById('qty').value) || 0;
+  let harga = parseInt(document.getElementById('harga').value) || 0;
+  document.getElementById('subTotal').value = qty * harga;
+}
+function pilihBayar(status){ statusBayar = status; alert('Status: ' + status); }
+
+function tambahNota(){
+  let data = {
+    layanan: document.getElementById('layanan').options[document.getElementById('layanan').selectedIndex].text,
+    qty: document.getElementById('qty').value,
+    subtotal: document.getElementById('subTotal').value
+  };
+  notaSekarang.push(data);
+  tampilkanNotaSekarang();
+  document.getElementById('qty').value = 1;
+  hitungSub();
+}
+
+function tampilkanNotaSekarang(){
+  let tabel = document.getElementById('tabelNotaSekarang');
+  let total = 0;
+  tabel.innerHTML = '<tr><th>LAYAN</th><th>QTY</th><th>SUB TOTAL</th><th>HAPUS</th></tr>';
+  notaSekarang.forEach((d, i) => {
+    total += parseInt(d.subtotal);
+    tabel.innerHTML += `<tr><td>${d.layanan}</td><td>${d.qty}</td><td>Rp ${parseInt(d.subtotal).toLocaleString('id-ID')}</td><td><button class="btn-x" onclick="hapusItem(${i})">X</button></td></tr>`;
+  });
+  document.getElementById('totalSemua').innerText = total.toLocaleString('id-ID');
+}
+
+function hapusItem(i){
+  notaSekarang.splice(i,1);
+  tampilkanNotaSekarang();
+}
+
+function selesaiTransaksi(){
+  if(notaSekarang.length === 0){ alert('Tambah nota dulu!'); return; }
+  let totalAkhir = parseInt(document.getElementById('totalSemua').innerText.replace(/\./g,''));
+  let noAnt = document.getElementById('noAntrian').value;
+  let data = {
+    noAntrian: noAnt,
+    nama: document.getElementById('nama').value,
+    tunai: statusBayar === 'TUNAI'? totalAkhir : 0,
+    kredit: statusBayar === 'KREDIT'? totalAkhir : 0
+  };
+  dataRekap.push(data);
+  dataProses.push({noAntrian: noAnt, status: 'PROSES'});
+
+  localStorage.setItem('kasirRekap21', JSON.stringify(dataRekap));
+  localStorage.setItem('kasirProses21', JSON.stringify(dataProses));
+  localStorage.setItem('noUrut21', noUrut + 1);
+  noUrut++;
+
+  notaSekarang = [];
+  document.getElementById('nama').value = '';
+  document.getElementById('noAntrian').value = 'A' + noUrut;
+  tampilkanNotaSekarang();
+  tampilkanRekap();
+  tampilkanProses();
+  alert('Transaksi Selesai & Masuk Rekap');
+}
+
+function setStatus(index, statusBaru){
+  dataProses[index].status = statusBaru;
+  localStorage.setItem('kasirProses21', JSON.stringify(dataProses));
+  tampilkanProses();
+}
+
+// FUNGSI BARU: HAPUS 1 BARIS STATUS
+function hapusStatus(index){
+  if(confirm('Hapus no antrian ' + dataProses[index].noAntrian + '?')){
+    dataProses.splice(index,1);
+    localStorage.setItem('kasirProses21', JSON.stringify(dataProses));
+    tampilkanProses();
+  }
+}
+
+function tampilkanRekap(){
+  let tabel = document.getElementById('tabelRekap');
+  let totalT = 0;
+  let totalK = 0;
+  tabel.innerHTML = '<tr><th>NO ANTRIAN</th><th>TUNAI</th><th>KREDIT</th></tr>';
+  dataRekap.forEach((d) => {
+    let t = parseInt(d.tunai)||0;
+    let k = parseInt(d.kredit)||0;
+    totalT += t;
+    totalK += k;
+    tabel.innerHTML += `<tr><td>${d.noAntrian}</td><td>Rp ${t.toLocaleString('id-ID')}</td><td>Rp ${k.toLocaleString('id-ID')}</td></tr>`;
+  });
+  let grand = totalT + totalK;
+  document.getElementById('totalTunai').innerText = totalT.toLocaleString('id-ID');
+  document.getElementById('totalKredit').innerText = totalK.toLocaleString('id-ID');
+  document.getElementById('grandTotal').innerText = grand.toLocaleString('id-ID');
+}
+
+function tampilkanProses(){
+  let tabel = document.getElementById('tabelProses');
+  tabel.innerHTML = '<tr><th>NO ANTRIAN</th><th>PROSES</th><th>SELESAI</th><th>STATUS</th><th>X</th></tr>';
+  dataProses.forEach((d, i) => {
+    let statusClass = d.status === 'PROSES'? 'status-proses' : 'status-selesai';
+    tabel.innerHTML += `
+    <tr>
+      <td>${d.noAntrian}</td>
+      <td><button class="btn-proses" onclick="setStatus(${i},'PROSES')">PROSES</button></td>
+      <td><button class="btn-selesai2" onclick="setStatus(${i},'SELESAI')">SELESAI</button></td>
+      <td class="${statusClass}">${d.status}</td>
+      <td><button class="btn-x" onclick="hapusStatus(${i})">X</button></td>
+    </tr>`;
+  });
+}
+
+function resetRekap(){
+  if(confirm('Hapus semua REKAP PENJUALAN? Status cucian aman.')){
+    dataRekap = [];
+    localStorage.removeItem('kasirRekap21');
+    tampilkanRekap();
+  }
+}
+
+function cetakStruk(){ window.print(); }
+function kirimWA(){
+  let pesan = `*PAUL LONDRY V21*%0ANo: ${document.getElementById('noAntrian').value}%0ANama: ${document.getElementById('nama').value}%0ATotal: Rp ${document.getElementById('totalSemua').innerText}`;
+  window.open(`https://wa.me/?text=${pesan}`);
+}
+cekAktivasi();
+</script>
+</body>
+</html>
