@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#007bff">
+<title>Kasir Laundry Paul IT</title>
+<style>
+body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 700px; margin: auto; position:relative; }
+h2 { text-align: center; color: #007bff; margin-bottom: 5px; font-size:18px; }
+.info-nota { display:flex; justify-content:space-between; font-size:12px; margin-bottom:10px; border-bottom:1px dashed #ccc; padding-bottom:10px; }
+.grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.form-input label { display:block; font-weight:bold; margin-top:10px; font-size:14px; }
+.form-input select,.form-input input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing:border-box; }
+.form-input input[readonly] { background:#e9ecef; }
+.btn { border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:10px; font-size:16px; color:white; }
+.btn-tambah { background: #28a745; }
+.btn-reset { background: #6c757d; }
+.btn-cetak { background: #ffc107; color:black; }
+.btn-wa { background: #25D366; }
+.btn-ganti { background: #6c757d; font-size:12px; padding:8px; width:auto; position:absolute; right:15px; top:10px; }
+table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; }
+th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
+th { background: #007bff; color: white; }
+td:nth-child(2) { text-align: left; }
+.btn-hapus { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 3px; cursor: pointer; }
+.total-box { background: #e7f3ff; padding: 15px; border-radius: 8px; margin-top: 10px; }
+.total { font-size: 28px; color: #dc3545; font-weight: bold; text-align:right; }
+.pilih-bayar { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+.btn-tunai { background: #28a745; }
+.btn-kredit { background: #dc3545; }
+.btn-tunai.active,.btn-kredit.active { box-shadow: 0 0 0 3px #000; }
+.ringkasan-box { background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px; border:1px solid #28a745; }
+.ringkasan-box h3 { margin-top:0; text-align:center; color:#155724; font-size:16px; }
+.ringkasan-item { display:flex; justify-content:space-between; font-size:16px; margin:8px 0; }
+.kolom-tunai { color:#28a745; font-weight:bold; }
+.kolom-kredit { color:#dc3545; font-weight:bold; }
+.rekap-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 20px; border:1px solid #ffc107; }
+.rekap-box h3 { margin-top:0; text-align:center; color:#856404; }
+.rekap-tabel th { background:#856404!important; font-size:12px; }
+.rekap-tabel td { font-size:12px; }
+.lock-screen { position:fixed; top:0; left:0; width:100%; height:100%; background:#007bff; color:white; display:flex; justify-content:center; align-items:center; z-index:9999; }
+.lock-box { background:white; color:black; padding:30px; border-radius:10px; text-align:center; width:90%; max-width:400px; }
+.lock-box input { width:100%; padding:12px; margin:10px 0; box-sizing:border-box; font-size:18px; text-align:center; }
+@media print {
+  body { background: white; }
+ .no-print { display: none!important; }
+ .box { width: 100%; max-width: 100%; margin:0; padding:0; box-shadow: none; border:none; }
+  body.print-rekap.nota-area { display: none!important; }
+  body.print-rekap.rekap-box { width: 100%; border: none; margin:0; padding:10px; }
+  body.print-nota.rekap-box { display: none!important; }
+}
+</style>
+</head>
+<body>
+
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-box">
+    <h3>🔒 KASIR LAUNDRY PAUL IT</h3>
+    <p style="font-size:12px;">Kode Aktivasi: <b>1234</b></p>
+    <input type="text" id="kodeInput" placeholder="Masukkan Kode Aktivasi">
+    <button class="btn btn-tambah" onclick="cekKode()">AKTIVASI</button>
+    <p style="font-size:12px; color:red;" id="pesanError"></p>
+  </div>
+</div>
+
+<div class="box" id="mainApp" style="display:none;">
+  <button class="btn btn-ganti no-print" onclick="gantiKode()">GANTI KODE</button>
+  <h2>🧺 KASIR LAUNDRY PAUL IT</h2>
+  <div class="nota-area">
+    <div class="info-nota">
+      <span><b>No Nota:</b> <span id="noNotaView"></span></span>
+      <span><b>Tgl:</b> <span id="tanggal"></span></span>
+    </div>
+    <div class="grid">
+      <div class="form-input"> <label>Nama Pelanggan</label> <input type="text" id="namaPelanggan" placeholder="Nama Pelanggan"> </div>
+      <div class="form-input"> <label>No Nota</label> <input type="text" id="noNota" readonly> </div>
+      <div class="form-input"> <label>Jenis Layanan</label>
+        <select id="jenisLayanan" onchange="setHarga()">
+          <option value="7000">Cuci Kiloan - Rp 7.000</option>
+          <option value="4000">Cuci Satuan - Rp 4.000</option>
+          <option value="2000">Setrika - Rp 2.000</option>
+        </select>
+      </div>
+      <div class="form-input"><label>QTY</label><input type="number" id="qtyBarang" value="1" autofocus></div>
+      <div class="form-input" style="grid-column: span 2;"><label>Harga Satuan</label><input type="number" id="hargaBarang" value="7000" readonly></div>
+    </div>
+    <button class="btn btn-tambah no-print" onclick="tambahBarang()">+ TAMBAH KE NOTA</button>
+
+    <div class="pilih-bayar no-print">
+      <button class="btn btn-tunai active" id="btnTunai" onclick="pilihBayar('TUNAI')">💵 TUNAI</button>
+      <button class="btn btn-kredit" id="btnKredit" onclick="pilihBayar('KREDIT')">📝 KREDIT</button>
+    </div>
+
+    <button class="btn btn-cetak no-print" onclick="simpanDanCetak()">🖨️ CETAK STRUK & SIMPAN</button>
+    <button class="btn btn-cetak no-print" onclick="cetakRekapPenjualan()">🖨️ CETAK REKAPAN PENJUALAN</button>
+    <button class="btn btn-wa no-print" onclick="kirimWA()">📲 KIRIM KE WA</button>
+    <button class="btn btn-reset no-print" onclick="resetNota()">SELESAI / NOTA BARU</button>
+
+    <table id="tabel"><tr><th>No</th><th>Layanan</th><th>QTY</th><th>Harga</th><th>Jumlah</th><th class="no-print">Aksi</th></tr></table>
+
+    <div class="total-box">
+      <h3>GRAND TOTAL</h3>
+      <div class="total" id="grandTotal">Rp 0</div>
+    </div>
+
+    <div class="ringkasan-box">
+      <h3>RINGKASAN HARI INI</h3>
+      <div class="ringkasan-item"><span>Total Tunai:</span><span class="kolom-tunai" id="totalTunai">Rp 0</span></div>
+      <div class="ringkasan-item"><span>Total Kredit:</span><span class="kolom-kredit" id="totalKredit">Rp 0</span></div>
+      <div class="ringkasan-item"><span><b>GRAND TOTAL:</b></span><span><b id="grandTotalHarian">Rp 0</b></span></div>
+    </div>
+  </div>
+
+  <div class="rekap-box" id="rekapBox">
+    <h3>REKAPAN PENJUALAN</h3>
+    <button class="btn btn-reset no-print" style="background:#dc3545" onclick="hapusRekap()">HAPUS SEMUA REKAP</button>
+    <table class="rekap-tabel" id="tabelRekap">
+      <tr><th>Tanggal</th><th>No Nota</th><th>Nama</th><th>Bayar</th><th>Total</th></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+// ===== KODE AKTIVASI TETAP =====
+const KODE_DEFAULT = '1234';
+let kodeAktivasi = localStorage.getItem('kodeAktivasi') || KODE_DEFAULT;
+// =================================
+
+let keranjang = [];
+let totalNota = 0;
+let jenisBayar = 'TUNAI';
+let noNota = parseInt(localStorage.getItem('noNota')) || 1;
+let dataRekap = JSON.parse(localStorage.getItem('dataRekap')) || [];
+
+function formatRp(angka){ return 'Rp ' + angka.toLocaleString('id-ID'); }
+
+function cekKode(){
+  if(document.getElementById('kodeInput').value == kodeAktivasi){
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('pesanError').innerText = 'Kode Salah! Kode: 1234';
+  }
+}
+
+function gantiKode(){
+  let kodeLama = prompt('Masukkan kode lama:');
+  if(kodeLama!= kodeAktivasi){ alert('Kode lama salah!'); return; }
+  let kodeBaru = prompt('Masukkan kode baru:');
+  if(kodeBaru){
+    localStorage.setItem('kodeAktivasi', kodeBaru);
+    kodeAktivasi = kodeBaru;
+    alert('Kode berhasil diganti!');
+  }
+}
+
+function loadData(){
+  document.getElementById('noNota').value = noNota;
+  document.getElementById('noNotaView').innerText = noNota;
+  document.getElementById('tanggal').innerText = new Date().toLocaleDateString('id-ID');
+  updateRingkasan();
+  renderRekap();
+}
+
+function setHarga(){
+  document.getElementById('hargaBarang').value = document.getElementById('jenisLayanan').value;
+}
+
+function pilihBayar(jenis){
+  jenisBayar = jenis;
+  document.getElementById('btnTunai').classList.remove('active');
+  document.getElementById('btnKredit').classList.remove('active');
+  document.getElementById('btn' + jenis.charAt(0) + jenis.slice(1).toLowerCase()).classList.add('active');
+}
+
+function tambahBarang(){
+  let layanan = document.getElementById('jenisLayanan');
+  let namaLayanan = layanan.options[layanan.selectedIndex].text.split(' - ')[0];
+  let qty = parseInt(document.getElementById('qtyBarang').value) || 1;
+  let harga = parseInt(document.getElementById('hargaBarang').value);
+  let jumlah = qty * harga;
+
+  keranjang.push({namaLayanan, qty, harga, jumlah});
+  totalNota += jumlah;
+  renderTabel();
+  document.getElementById('grandTotal').innerText = formatRp(totalNota);
+  document.getElementById('qtyBarang').value = 1;
+}
+
+function hapusBarang(index){
+  totalNota -= keranjang[index].jumlah;
+  keranjang.splice(index,1);
+  document.getElementById('grandTotal').innerText = formatRp(totalNota);
+  renderTabel();
+}
+
+function renderTabel(){
+  let tabel = document.getElementById('tabel');
+  tabel.innerHTML = `<tr><th>No</th><th>Layanan</th><th>QTY</th><th>Harga</th><th>Jumlah</th><th class="no-print">Aksi</th></tr>`;
+  keranjang.forEach((item,i)=>{
+    tabel.innerHTML += `<tr><td>${i+1}</td><td>${item.namaLayanan}</td><td>${item.qty}</td><td>${formatRp(item.harga)}</td><td>${formatRp(item.jumlah)}</td><td class="no-print"><button class="btn-hapus" onclick="hapusBarang(${i})">X</button></td></tr>`;
+  });
+}
+
+function simpanDanCetak(){
+  if(keranjang.length == 0){ alert('Tambah barang dulu!'); return; }
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+
+  // SIMPAN DULU SEBELUM NO NOTA NAIK
+  let data = {
+    tanggal: new Date().toLocaleDateString('id-ID'),
+    noNota: noNota,
+    nama: nama,
+    jenisBayar: jenisBayar,
+    total: totalNota
+  };
+  dataRekap.push(data);
+  localStorage.setItem('dataRekap', JSON.stringify(dataRekap));
+
+  // BARU NAIKIN NO NOTA
+  noNota++;
+  localStorage.setItem('noNota', noNota);
+
+  updateRingkasan();
+  renderRekap();
+
+  document.body.classList.add('print-nota');
+  window.print();
+  document.body.classList.remove('print-nota');
+
+  resetNota();
+}
+
+function resetNota(){
+  keranjang = [];
+  totalNota = 0;
+  document.getElementById('namaPelanggan').value = '';
+  document.getElementById('grandTotal').innerText = 'Rp 0';
+  renderTabel();
+  loadData();
+}
+
+function updateRingkasan(){
+  let tunai = dataRekap.filter(d=>d.jenisBayar=='TUNAI').reduce((a,b)=>a+b.total,0);
+  let kredit = dataRekap.filter(d=>d.jenisBayar=='KREDIT').reduce((a,b)=>a+b.total,0);
+  document.getElementById('totalTunai').innerText = formatRp(tunai);
+  document.getElementById('totalKredit').innerText = formatRp(kredit);
+  document.getElementById('grandTotalHarian').innerText = formatRp(tunai+kredit);
+}
+
+function renderRekap(){
+  let tabel = document.getElementById('tabelRekap');
+  tabel.innerHTML = `<tr><th>Tanggal</th><th>No Nota</th><th>Nama</th><th>Bayar</th><th>Total</th></tr>`;
+  dataRekap.forEach(d=>{
+    tabel.innerHTML += `<tr><td>${d.tanggal}</td><td>${d.noNota}</td><td>${d.nama}</td><td>${d.jenisBayar}</td><td>${formatRp(d.total)}</td></tr>`;
+  });
+}
+
+function hapusRekap(){
+  if(confirm('Yakin hapus semua rekap?')){
+    localStorage.removeItem('dataRekap');
+    localStorage.removeItem('noNota');
+    dataRekap = [];
+    noNota = 1;
+    updateRingkasan();
+    renderRekap();
+    loadData();
+    alert('Rekap berhasil dihapus');
+  }
+}
+
+function cetakRekapPenjualan(){
+  document.body.classList.add('print-rekap');
+  window.print();
+  document.body.classList.remove('print-rekap');
+}
+
+function kirimWA(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let pesan = `*LAUNDRY PAUL IT*%0A`;
+  pesan += `No Nota: ${noNota}%0A`;
+  pesan += `Nama: ${nama}%0A`;
+  pesan += `Tgl: ${new Date().toLocaleDateString('id-ID')}%0A`;
+  pesan += `-----------------------%0A`;
+  keranjang.forEach(i=>{ pesan += `${i.namaLayanan} x${i.qty} = ${formatRp(i.jumlah)}%0A`; });
+  pesan += `-----------------------%0A`;
+  pesan += `*Total: ${formatRp(totalNota)}*%0A`;
+  pesan += `Bayar: ${jenisBayar}`;
+  window.open(`https://wa.me/?text=${pesan}`, '_blank');
+}
+</script>
+</body>
+</html>
