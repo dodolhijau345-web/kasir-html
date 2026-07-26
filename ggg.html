@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir Laundry Paul IT</title>
+<style>
+body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 500px; margin: auto; }
+h2 { text-align: center; color: #007bff; margin-bottom: 15px; }
+.form-row { display:flex; gap:10px; margin-bottom:10px; }
+.form-row input,.form-row select { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; font-size:16px; }
+
+/* KUSTOMISASI KOLOM PENDEK */
+.form-row input#noNota { max-width: 90px; }
+.form-row input#qtyBarang { max-width: 70px; }
+
+.form-row input[readonly] { background:#e9ecef; font-weight:bold; text-align:center; color:#dc3545; }
+label { font-weight:bold; font-size:14px; display:block; margin-bottom:3px; }
+
+/* WARNA TOMBOL SESUAI GAMBAR */
+.btn { border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:8px; font-size:16px; color:white; }
+.btn-tambah { background: #28a745; } /* Hijau */
+.btn-tunai { background: #28a745; } /* Hijau */
+.btn-kredit { background: #f8c8dc; color:#333; } /* Pink */
+.btn-cetak { background: #ffc107; color:#333; } /* Kuning */
+.btn-wa { background: #20c997; } /* Tosca */
+.btn-selesai { background: #adb5bd; } /* Abu Biru */
+.btn-lisensi { background: #adb5bd; } /* Abu Biru */
+.btn-merah { background: #dc3545; }
+
+.btn-grup { display:flex; gap:10px; }
+table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size:13px; }
+th, td { border: 1px solid #000; padding: 6px; text-align: center; }
+th { background: #eee; }
+td:nth-child(2) { text-align: left; }
+.total-box { background: #fff; padding: 10px; margin-top: 10px; text-align:right; font-size:18px; font-weight:bold; }
+.rekap-box { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 20px; border:1px solid #ffc107; }
+.ringkasan-box { background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px; border:1px solid #28a745; }
+.ringkasan-item { display:flex; justify-content:space-between; font-size:16px; margin:8px 0; }
+.ringkasan-item.grand { font-size:18px; font-weight:bold; border-top:2px solid #28a745; padding-top:8px; }
+.kolom-tunai { color:#28a745; font-weight:bold; }
+.kolom-kredit { color:#dc3545; font-weight:bold; }
+
+/* PENGATURAN CETAK (PRINT) */
+@media print {
+  body { background: white; padding: 0; }
+  .no-print { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="box">
+<h2>🧺 KASIR LAUNDRY PAUL IT</h2>
+
+<!-- PELANGGAN & NO NOTA -->
+<div class="form-row no-print">
+  <div style="flex:1">
+    <label>PELANGGAN</label>
+    <input type="text" id="namaPelanggan" placeholder="Nama">
+  </div>
+  <div style="flex:1">
+    <label>NO NOTA</label>
+    <input type="text" id="noNota" readonly>
+  </div>
+</div>
+
+<!-- LAYAN & KG -->
+<div class="form-row no-print">
+  <div style="flex:1">
+    <label>LAYAN</label>
+    <select id="jenisLayanan" onchange="setHarga()">
+      <option value="7000">Cuci Kiloan</option>
+      <option value="4000">Cuci Satuan</option>
+      <option value="2000">Setrika</option>
+    </select>
+  </div>
+  <div style="flex:1">
+    <label>KG</label>
+    <input type="number" id="qtyBarang" value="1">
+  </div>
+</div>
+
+<div class="form-row no-print">
+  <div style="flex:1">
+    <label>HARGA SATUAN</label>
+    <input type="number" id="hargaBarang" value="7000" readonly>
+  </div>
+</div>
+
+<button class="btn btn-tambah no-print" onclick="tambahBarang()">+ TAMBAH NOTA</button>
+
+<!-- TOMBOL TUNAI KREDIT -->
+<div class="btn-grup no-print">
+  <button class="btn btn-tunai" id="btnTunai" onclick="pilihBayar('TUNAI')">TUNAI</button>
+  <button class="btn btn-kredit" id="btnKredit" onclick="pilihBayar('KREDIT')">KREDIT</button>
+</div>
+
+<button class="btn btn-cetak no-print" onclick="cetakStruk()">CETAK STRUK</button>
+<button class="btn btn-cetak no-print" onclick="cetakRekap()">CETAK PENJUALAN</button>
+<button class="btn btn-wa no-print" onclick="kirimWA()">KIRIM WA</button>
+<button class="btn btn-selesai no-print" onclick="resetNota()">SELESAI / NOTA BARU</button>
+
+<!-- AREA CETAK STRUK -->
+<div id="areaStruk" class="no-print">
+  <!-- TABEL NOTA -->
+  <table id="tabel">
+    <tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th></tr>
+  </table>
+
+  <div class="total-box">
+    TOTAL NOTA: Rp <span id="total">0</span>
+  </div>
+</div>
+
+<button class="btn btn-lisensi no-print" onclick="gantiLisensi()">GANTI LISENSI</button>
+
+<!-- REKAP PENJUALAN -->
+<div class="rekap-box" id="areaRekap">
+  <h3 style="text-align:center;">REKAP PENJUALAN</h3>
+  <table id="tabelRekap">
+    <tr><th>No Nota</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>
+  </table>
+
+  <!-- RINGKASAN HARIAN + GRAND TOTAL -->
+  <div class="ringkasan-box no-print">
+    <h3 style="text-align:center;">RINGKASAN HARIAN</h3>
+    <div class="ringkasan-item">
+      <span>Total Tunai:</span>
+      <span class="kolom-tunai">Rp <span id="grandTunai">0</span></span>
+    </div>
+    <div class="ringkasan-item">
+      <span>Total Kredit:</span>
+      <span class="kolom-kredit">Rp <span id="grandKredit">0</span></span>
+    </div>
+    <div class="ringkasan-item grand">
+      <span>GRAND TOTAL:</span>
+      <span id="grandTotalHarian">Rp 0</span>
+    </div>
+  </div>
+  <button class="btn btn-merah no-print" onclick="resetRekap()">RESET REKAP HARIAN</button>
+</div>
+
+</div>
+
+<script>
+let dataNota = [];
+let dataRekap = JSON.parse(localStorage.getItem('kasirRekap')) || [];
+let statusBayarSekarang = 'TUNAI';
+let noUrut = parseInt(localStorage.getItem('noUrut')) || 1;
+
+window.onload = function(){
+  buatNoNota();
+  tampilkanRekap();
+  hitungRingkasan();
+  pilihBayar('TUNAI');
+}
+
+function buatNoNota(){
+  document.getElementById('noNota').value = 'N' + noUrut;
+}
+
+function setHarga(){
+  document.getElementById('hargaBarang').value = document.getElementById('jenisLayanan').value;
+}
+
+function pilihBayar(status){
+  statusBayarSekarang = status;
+  document.getElementById('btnTunai').style.opacity = status==='TUNAI'? '1':'0.6';
+  document.getElementById('btnKredit').style.opacity = status==='KREDIT'? '1':'0.6';
+}
+
+function tambahBarang(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let layanan = document.getElementById('jenisLayanan').options[document.getElementById('jenisLayanan').selectedIndex].text;
+  let qty = parseInt(document.getElementById('qtyBarang').value) || 1;
+  let harga = parseInt(document.getElementById('hargaBarang').value);
+  let jumlah = qty * harga;
+
+  dataNota.push({noNota, nama, layanan, qty, harga, jumlah});
+  tampilkanNota();
+  document.getElementById('qtyBarang').value = '1';
+}
+
+function tampilkanNota(){
+  let tabel = document.getElementById('tabel');
+  let total = 0;
+  tabel.innerHTML = '<tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th></tr>';
+  dataNota.forEach((d, i) => {
+    total += d.jumlah;
+    tabel.innerHTML += `<tr><td>${i+1}</td><td>${d.layanan}</td><td>${d.qty}</td><td>${d.harga.toLocaleString('id-ID')}</td><td>${d.jumlah.toLocaleString('id-ID')}</td></tr>`;
+  });
+  document.getElementById('total').innerText = total.toLocaleString('id-ID');
+}
+
+function resetNota(){
+  if(dataNota.length === 0) return alert('Nota masih kosong');
+  if(confirm('Simpan ke rekap & buat nota baru?')){
+    let totalNota = dataNota.reduce((sum, d) => sum + d.jumlah, 0);
+    let tunai = statusBayarSekarang === 'TUNAI'? totalNota : 0;
+    let kredit = statusBayarSekarang === 'KREDIT'? totalNota : 0;
+    let tgl = new Date().toLocaleDateString('id-ID');
+
+    dataRekap.push({noNota: dataNota[0].noNota, tgl, tunai, kredit});
+    localStorage.setItem('kasirRekap', JSON.stringify(dataRekap));
+
+    dataNota = [];
+    noUrut++;
+    localStorage.setItem('noUrut', noUrut);
+    buatNoNota();
+    tampilkanNota();
+    tampilkanRekap();
+    hitungRingkasan();
+    document.getElementById('namaPelanggan').value = '';
+    pilihBayar('TUNAI');
+  }
+}
+
+function tampilkanRekap(){
+  let tabel = document.getElementById('tabelRekap');
+  tabel.innerHTML = '<tr><th>No Nota</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>';
+  dataRekap.slice().reverse().forEach((d) => {
+    let tunaiText = d.tunai > 0? d.tunai.toLocaleString('id-ID') : '-';
+    let kreditText = d.kredit > 0? d.kredit.toLocaleString('id-ID') : '-';
+    tabel.innerHTML += `<tr><td>${d.noNota}</td><td>${d.tgl}</td><td class="kolom-tunai">${tunaiText}</td><td class="kolom-kredit">${kreditText}</td></tr>`;
+  });
+}
+
+function hitungRingkasan(){
+  let grandTunai = 0; let grandKredit = 0;
+  dataRekap.forEach(d => { grandTunai += d.tunai; grandKredit += d.kredit; });
+  let grandTotal = grandTunai + grandKredit;
+  document.getElementById('grandTunai').innerText = grandTunai.toLocaleString('id-ID');
+  document.getElementById('grandKredit').innerText = grandKredit.toLocaleString('id-ID');
+  document.getElementById('grandTotalHarian').innerText = 'Rp ' + grandTotal.toLocaleString('id-ID');
+}
+
+function resetRekap(){
+  if(confirm('Hapus semua rekap?')){
+    dataRekap = []; localStorage.removeItem('kasirRekap'); localStorage.removeItem('noUrut'); noUrut=1;
+    tampilkanRekap(); hitungRingkasan(); buatNoNota();
+  }
+}
+
+function cetakStruk(){
+  if(dataNota.length === 0) return alert('Nota masih kosong, tambahkan item terlebih dahulu!');
+  
+  let areaStruk = document.getElementById('areaStruk');
+  areaStruk.classList.remove('no-print');
+  
+  window.print();
+  
+  areaStruk.classList.add('no-print');
+}
+
+function cetakRekap(){
+  let tabelRekap = document.getElementById('tabelRekap');
+  tabelRekap.classList.remove('no-print');
+  
+  window.print();
+}
+
+function kirimWA(){ alert('Fitur Kirim WA'); }
+function gantiLisensi(){ alert('Fitur Ganti Lisensi'); }
+</script>
+</body>
+</html>
