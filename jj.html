@@ -10,6 +10,11 @@ body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
 h2 { text-align: center; color: #007bff; margin-bottom: 15px; }
 .form-row { display:flex; gap:10px; margin-bottom:10px; }
 .form-row input,.form-row select { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; font-size:16px; }
+
+/* KUSTOMISASI KOLOM PENDEK */
+.form-row input#noNota { max-width: 90px; }
+.form-row input#qtyBarang { max-width: 70px; }
+
 .form-row input[readonly] { background:#e9ecef; font-weight:bold; text-align:center; color:#dc3545; }
 label { font-weight:bold; font-size:14px; display:block; margin-bottom:3px; }
 
@@ -36,6 +41,12 @@ td:nth-child(2) { text-align: left; }
 .ringkasan-item.grand { font-size:18px; font-weight:bold; border-top:2px solid #28a745; padding-top:8px; }
 .kolom-tunai { color:#28a745; font-weight:bold; }
 .kolom-kredit { color:#dc3545; font-weight:bold; }
+
+/* PENGATURAN CETAK (PRINT) */
+@media print {
+  body { background: white; padding: 0; }
+  .no-print { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -43,19 +54,19 @@ td:nth-child(2) { text-align: left; }
 <h2>🧺 KASIR LAUNDRY PAUL IT</h2>
 
 <!-- PELANGGAN & NO NOTA -->
-<div class="form-row">
+<div class="form-row no-print">
   <div style="flex:1">
     <label>PELANGGAN</label>
     <input type="text" id="namaPelanggan" placeholder="Nama">
   </div>
-  <div style="flex:1">
+  <div style="flex:1;">
     <label>NO NOTA</label>
     <input type="text" id="noNota" readonly>
   </div>
 </div>
 
 <!-- LAYAN & KG -->
-<div class="form-row">
+<div class="form-row no-print">
   <div style="flex:1">
     <label>LAYAN</label>
     <select id="jenisLayanan" onchange="setHarga()">
@@ -70,39 +81,46 @@ td:nth-child(2) { text-align: left; }
   </div>
 </div>
 
-<div class="form-row">
+<div class="form-row no-print">
   <div style="flex:1">
     <label>HARGA SATUAN</label>
     <input type="number" id="hargaBarang" value="7000" readonly>
   </div>
 </div>
 
-<button class="btn btn-tambah" onclick="tambahBarang()">+ TAMBAH NOTA</button>
+<button class="btn btn-tambah no-print" onclick="tambahBarang()">+ TAMBAH NOTA</button>
 
 <!-- TOMBOL TUNAI KREDIT -->
-<div class="btn-grup">
+<div class="btn-grup no-print">
   <button class="btn btn-tunai" id="btnTunai" onclick="pilihBayar('TUNAI')">TUNAI</button>
   <button class="btn btn-kredit" id="btnKredit" onclick="pilihBayar('KREDIT')">KREDIT</button>
 </div>
 
-<button class="btn btn-cetak" onclick="cetakStruk()">CETAK STRUK</button>
-<button class="btn btn-cetak" onclick="cetakRekap()">CETAK PENJUALAN</button>
-<button class="btn btn-wa" onclick="kirimWA()">KIRIM WA</button>
-<button class="btn btn-selesai" onclick="resetNota()">SELESAI / NOTA BARU</button>
+<button class="btn btn-cetak no-print" onclick="cetakStruk()">CETAK STRUK</button>
+<button class="btn btn-cetak no-print" onclick="cetakRekap()">CETAK PENJUALAN</button>
+<button class="btn btn-wa no-print" onclick="kirimWA()">KIRIM WA</button>
+<button class="btn btn-selesai no-print" onclick="resetNota()">SELESAI / NOTA BARU</button>
 
-<!-- TABEL NOTA -->
-<table id="tabel">
-  <tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th></tr>
-</table>
+<!-- AREA CETAK STRUK -->
+<div id="areaStruk">
+  <div id="infoStrukCetak" style="display:none; margin-bottom: 10px; font-size: 14px;">
+    <strong>No Nota:</strong> <span id="cetakNoNota"></span><br>
+    <strong>Pelanggan:</strong> <span id="cetakNamaPelanggan"></span>
+  </div>
+  <!-- TABEL NOTA -->
+  <table id="tabel">
+    <tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th></tr>
+  </table>
 
-<div class="total-box">
-  TOTAL NOTA: Rp <span id="total">0</span>
+  <div class="total-box">
+    TOTAL NOTA: Rp <span id="total">0</span>
+  </div>
 </div>
 
-<button class="btn btn-lisensi" onclick="gantiLisensi()">GANTI LISENSI</button>
+<button class="btn btn-lisensi no-print" onclick="gantiLisensi()">GANTI LISENSI</button>
 
 <!-- REKAP PENJUALAN -->
-<div class="rekap-box">
+<div class="rekap-box" id="areaRekap">
   <h3 style="text-align:center;">REKAP PENJUALAN</h3>
   <table id="tabelRekap">
     <tr><th>No Nota</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>
@@ -124,7 +142,7 @@ td:nth-child(2) { text-align: left; }
       <span id="grandTotalHarian">Rp 0</span>
     </div>
   </div>
-  <button class="btn btn-merah" onclick="resetRekap()">RESET REKAP HARIAN</button>
+  <button class="btn btn-merah no-print" onclick="resetRekap()">RESET REKAP HARIAN</button>
 </div>
 
 </div>
@@ -229,8 +247,39 @@ function resetRekap(){
   }
 }
 
-function cetakStruk(){ window.print(); }
-function cetakRekap(){ window.print(); }
+function cetakStruk(){
+  if(dataNota.length === 0) return alert('Nota masih kosong, tambahkan item terlebih dahulu!');
+  
+  // Tampilkan informasi no nota & pelanggan khusus saat dicetak
+  document.getElementById('cetakNoNota').innerText = dataNota[0].noNota;
+  document.getElementById('cetakNamaPelanggan').innerText = dataNota[0].nama;
+  document.getElementById('infoStrukCetak').style.display = 'block';
+  
+  // Sembunyikan area rekap saat cetak struk
+  let rekapBox = document.getElementById('areaRekap');
+  rekapBox.style.display = 'none';
+  
+  window.print();
+  
+  // Kembalikan seperti semula setelah print dialog ditutup
+  document.getElementById('infoStrukCetak').style.display = 'none';
+  rekapBox.style.display = 'block';
+}
+
+function cetakRekap(){
+  // Sembunyikan area struk/nota saat cetak rekap
+  let areaStruk = document.getElementById('areaStruk');
+  let h2Title = document.querySelector('h2');
+  areaStruk.style.display = 'none';
+  h2Title.style.display = 'none';
+  
+  window.print();
+  
+  // Kembalikan seperti semula setelah print dialog ditutup
+  areaStruk.style.display = 'block';
+  h2Title.style.display = 'block';
+}
+
 function kirimWA(){ alert('Fitur Kirim WA'); }
 function gantiLisensi(){ alert('Fitur Ganti Lisensi'); }
 </script>
