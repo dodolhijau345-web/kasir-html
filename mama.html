@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KASIR</title>
+<style>
+body { font-family: Arial; background: #b6a9aa; padding: 20px; margin:0; }
+.box { max-width: 400px; margin: auto; }
+h2 { text-align: center; margin-bottom: 15px; }
+label { font-size: 14px; display:block; margin-bottom:3px; }
+input, select { padding:6px; border:1px solid hwb(127 52% 42% / 0.856); border-radius:3px; font-size:14px; width:100%; box-sizing: border-box; }
+.row { display:flex; gap:10px; margin-bottom:10px; }
+.row .col { flex:1; }
+button { border:1px solid #000; padding: 8px; border-radius: 3px; font-weight: bold; cursor: pointer; width:100%; margin-top:6px; font-size:14px; background:#fff; }
+.btn-grup { display:flex; gap:10px; }
+button:active { background:#850909; }
+table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size:13px; }
+th, td { border: 1px solid #000; padding: 4px; text-align: center; }
+th { background: #6d726a; }
+td:nth-child(2) { text-align: left; }
+.total { text-align:center; margin-top:8px; font-weight:bold; }
+.rekap { margin-top:20px; }
+.rekap h3 { text-align:center; margin-bottom:5px; }
+.summary { margin-top:10px; font-size:14px; }
+.summary div { margin:3px 0; }
+
+/* CSS KHUS CETAK STRUK */
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="box">
+<h2>KASIR</h2>
+
+<!-- PELANGGAN & NOTA -->
+<div class="row">
+  <div class="col">
+    <label>Pelanggan</label>
+    <input type="text" id="namaPelanggan">
+  </div>
+  <div class="col">
+    <label>Nota</label>
+    <input type="text" id="noNota" readonly>
+  </div>
+</div>
+
+<!-- LAYAN & KG -->
+<div class="row">
+  <div class="col">
+    <label>Layanan</label>
+    <select id="jenisLayanan" onchange="setHarga()">
+      <option value="7000">Cuci Kiloan</option>
+      <option value="4000">Cuci Satuan</option>
+      <option value="2000">Setrika</option>
+    </select>
+  </div>
+  <div class="col">
+    <label>Kg</label>
+    <input type="number" id="qtyBarang" value="1">
+  </div>
+</div>
+
+<!-- HARGA SATUAN -->
+<label>Harga Satuan</label>
+<input type="number" id="hargaBarang" value="7000" readonly>
+
+<button onclick="tambahBarang()">+ Tambah Nota</button>
+
+<!-- TUNAI KREDIT -->
+<div class="btn-grup">
+  <button id="btnTunai" onclick="pilihBayar('TUNAI')">TUNAI</button>
+  <button id="btnKredit" onclick="pilihBayar('KREDIT')">KREDIT</button>
+</div>
+
+<button onclick="cetakStrukPembelian()">CETAK STRUK</button>
+<button onclick="kirimWA()">KIRIM WA</button>
+<button onclick="resetNota()">SELESAI / NOTA BARU</button>
+
+<!-- TABEL NOTA -->
+<table id="tabel">
+  <tr><th>No</th><th>Layanan</th><th>Kg</th><th>Harga</th><th>Jumlah</th></tr>
+</table>
+<div class="total">Total</div>
+
+<button onclick="gantiLisensi()">ganti lisensi</button>
+
+<!-- REKAP -->
+<div class="rekap">
+  <h3>Rekap penjualan</h3>
+  <table id="tabelRekap">
+    <tr><th>No Nota</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>
+  </table>
+  <div class="summary">
+    <div>Total tunai: Rp <span id="grandTunai">0</span></div>
+    <div>Total kredit: Rp <span id="grandKredit">0</span></div>
+    <div>Grand total: Rp <span id="grandTotalHarian">0</span></div>
+  </div>
+  <button onclick="cetakRekapPenjualan()">CETAK REKAP</button>
+</div>
+</div>
+
+<!-- AREA CETAK TERSEMBUNYI -->
+<div id="printArea" class="print-area" style="display:none;"></div>
+
+<script>
+let dataNota = [];
+let dataRekap = JSON.parse(localStorage.getItem('kasirRekap')) || [];
+let statusBayarSekarang = 'TUNAI';
+let noUrut = parseInt(localStorage.getItem('noUrut')) || 1;
+
+window.onload = function(){
+  buatNoNota();
+  tampilkanRekap();
+  hitungRingkasan();
+  pilihBayar('TUNAI');
+}
+
+function buatNoNota(){
+  document.getElementById('noNota').value = 'N' + noUrut;
+}
+
+function setHarga(){
+  document.getElementById('hargaBarang').value = document.getElementById('jenisLayanan').value;
+}
+
+function pilihBayar(status){
+  statusBayarSekarang = status;
+  document.getElementById('btnTunai').style.fontWeight = status==='TUNAI'? 'bold':'normal';
+  document.getElementById('btnKredit').style.fontWeight = status==='KREDIT'? 'bold':'normal';
+}
+
+function tambahBarang(){
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let layanan = document.getElementById('jenisLayanan').options[document.getElementById('jenisLayanan').selectedIndex].text;
+  let qty = parseInt(document.getElementById('qtyBarang').value) || 1;
+  let harga = parseInt(document.getElementById('hargaBarang').value);
+  let jumlah = qty * harga;
+  dataNota.push({noNota, nama, layanan, qty, harga, jumlah});
+  tampilkanNota();
+  document.getElementById('qtyBarang').value = '1';
+}
+
+function tampilkanNota(){
+  let tabel = document.getElementById('tabel');
+  let total = 0;
+  tabel.innerHTML = '<tr><th>No</th><th>Layanan</th><th>Kg</th><th>Harga</th><th>Jumlah</th></tr>';
+  dataNota.forEach((d, i) => {
+    total += d.jumlah;
+    tabel.innerHTML += `<tr><td>${i+1}</td><td>${d.layanan}</td><td>${d.qty}</td><td>${d.harga.toLocaleString('id-ID')}</td><td>${d.jumlah.toLocaleString('id-ID')}</td></tr>`;
+  });
+  document.querySelector('.total').innerText = 'Total : Rp ' + total.toLocaleString('id-ID');
+}
+
+function resetNota(){
+  if(dataNota.length === 0) return alert('Nota masih kosong');
+  if(confirm('Simpan ke rekap & buat nota baru?')){
+    let totalNota = dataNota.reduce((sum, d) => sum + d.jumlah, 0);
+    let tunai = statusBayarSekarang === 'TUNAI'? totalNota : 0;
+    let kredit = statusBayarSekarang === 'KREDIT'? totalNota : 0;
+    let tgl = new Date().toLocaleDateString('id-ID');
+    dataRekap.push({noNota: dataNota[0].noNota, nama: dataNota[0].nama, tgl, tunai, kredit, total: totalNota});
+    localStorage.setItem('kasirRekap', JSON.stringify(dataRekap));
+    dataNota = [];
+    noUrut++;
+    localStorage.setItem('noUrut', noUrut);
+    buatNoNota();
+    tampilkanNota();
+    tampilkanRekap();
+    hitungRingkasan();
+    document.getElementById('namaPelanggan').value = '';
+    pilihBayar('TUNAI');
+  }
+}
+
+function tampilkanRekap(){
+  let tabel = document.getElementById('tabelRekap');
+  tabel.innerHTML = '<tr><th>No Nota</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>';
+  dataRekap.slice().reverse().forEach((d) => {
+    let tunaiText = d.tunai > 0? d.tunai.toLocaleString('id-ID') : '-';
+    let kreditText = d.kredit > 0? d.kredit.toLocaleString('id-ID') : '-';
+    tabel.innerHTML += `<tr><td>${d.noNota}</td><td>${d.tgl}</td><td>${tunaiText}</td><td>${kreditText}</td></tr>`;
+  });
+}
+
+function hitungRingkasan(){
+  let grandTunai = 0; let grandKredit = 0;
+  dataRekap.forEach(d => { grandTunai += d.tunai; grandKredit += d.kredit; });
+  let grandTotal = grandTunai + grandKredit;
+  document.getElementById('grandTunai').innerText = grandTunai.toLocaleString('id-ID');
+  document.getElementById('grandKredit').innerText = grandKredit.toLocaleString('id-ID');
+  document.getElementById('grandTotalHarian').innerText = grandTotal.toLocaleString('id-ID');
+}
+
+// 1. CETAK STRUK PEMBELIAN 1 NOTA
+function cetakStrukPembelian(){
+  if(dataNota.length === 0) return alert('Nota masih kosong');
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let total = dataNota.reduce((sum, d) => sum + d.jumlah, 0);
+  let tgl = new Date().toLocaleString('id-ID');
+  
+  let isi = `
+    <div style="font-family: monospace; width: 300px; padding: 10px;">
+      <h3 style="text-align:center;">LAUNDRY PAUL IT</h3>
+      <p>Tgl: ${tgl}</p>
+      <p>No: ${noNota}</p>
+      <p>Nama: ${nama}</p>
+      <p>Status: ${statusBayarSekarang}</p>
+      <hr>
+  `;
+  dataNota.forEach((d, i) => {
+    isi += `<p>${d.layanan} ${d.qty}kg x ${d.harga.toLocaleString('id-ID')} = ${d.jumlah.toLocaleString('id-ID')}</p>`;
+  });
+  isi += `
+      <hr>
+      <h3>TOTAL: Rp ${total.toLocaleString('id-ID')}</h3>
+      <p style="text-align:center;">Terima Kasih</p>
+    </div>
+  `;
+  document.getElementById('printArea').innerHTML = isi;
+  document.getElementById('printArea').style.display = 'block';
+  window.print();
+  document.getElementById('printArea').style.display = 'none';
+}
+
+// 2. CETAK REKAP PENJUALAN SEMUA
+function cetakRekapPenjualan(){
+  let tgl = new Date().toLocaleDateString('id-ID');
+  let grandTunai = 0; let grandKredit = 0;
+  dataRekap.forEach(d => { grandTunai += d.tunai; grandKredit += d.kredit; });
+  let grandTotal = grandTunai + grandKredit;
+  
+  let isi = `
+    <div style="font-family: monospace; width: 300px; padding: 10px;">
+      <h3 style="text-align:center;">REKAP PENJUALAN</h3>
+      <p>Tgl Cetak: ${tgl}</p>
+      <hr>
+      <table style="width:100%; font-size:12px;">
+        <tr><th>No</th><th>Tgl</th><th>Tunai</th><th>Kredit</th></tr>
+  `;
+  dataRekap.forEach((d) => {
+    let tunaiText = d.tunai > 0? d.tunai.toLocaleString('id-ID') : '-';
+    let kreditText = d.kredit > 0? d.kredit.toLocaleString('id-ID') : '-';
+    isi += `<tr><td>${d.noNota}</td><td>${d.tgl}</td><td>${tunaiText}</td><td>${kreditText}</td></tr>`;
+  });
+  isi += `
+      </table>
+      <hr>
+      <p>Total Tunai: Rp ${grandTunai.toLocaleString('id-ID')}</p>
+      <p>Total Kredit: Rp ${grandKredit.toLocaleString('id-ID')}</p>
+      <h3>GRAND TOTAL: Rp ${grandTotal.toLocaleString('id-ID')}</h3>
+    </div>
+  `;
+  document.getElementById('printArea').innerHTML = isi;
+  document.getElementById('printArea').style.display = 'block';
+  window.print();
+  document.getElementById('printArea').style.display = 'none';
+}
+
+function gantiLisensi(){ alert('Fitur Ganti Lisensi'); }
+
+function kirimWA(){
+  if(dataNota.length === 0) return alert('Nota masih kosong');
+  let nama = document.getElementById('namaPelanggan').value || 'Umum';
+  let noNota = document.getElementById('noNota').value;
+  let total = dataNota.reduce((sum, d) => sum + d.jumlah, 0);
+  let layananList = dataNota.map(d => `${d.layanan} ${d.qty}kg x Rp${d.harga.toLocaleString('id-ID')}`).join('\n');
+  let pesan = `*NOTA LAUNDRY*
+Nama: ${nama}
+No Nota: ${noNota}
+Status: ${statusBayarSekarang}
+${layananList}
+Total : Rp ${total.toLocaleString('id-ID')}
+Terima kasih`;
+  let nomorWA = prompt("Masukkan nomor WA 628xxxx:");
+  if(nomorWA){ window.open(`https://wa.me/${nomorWA}?text=${encodeURIComponent(pesan)}`, '_blank'); }
+}
+</script>
+</body>
+</html>
