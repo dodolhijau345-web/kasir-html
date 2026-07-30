@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasir Laundry Paul IT</title>
+<style>
+body { font-family: Arial; background: #f2f2f2; padding: 10px; margin:0; }
+.box { background: white; padding: 15px; border-radius: 10px; max-width: 550px; margin: auto; }
+h2 { text-align: center; color: #007bff; margin-bottom: 15px; }
+h3 { text-align: center; margin: 15px 0 10px 0; color: #333; }
+.form-row { display:flex; gap:10px; margin-bottom:10px; }
+.form-row input,.form-row select { flex:1; padding:10px; border:1px solid #ccc; border-radius:5px; font-size:15px; width: 100%; box-sizing: border-box; }
+.form-row input[readonly] { background:#e9ecef; font-weight:bold; color:#dc3545; }
+label { font-weight:bold; font-size:13px; display:block; margin-bottom:3px; }
+.btn { border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; width:100%; margin-top:8px; font-size:16px; color:white; }
+.btn-hijau { background: #28a745; }
+.btn-kuning { background: #ffc107; color:#333; }
+.btn-biru { background: #007bff; }
+.btn-merah { background: #dc3545; }
+.btn-tosca { background: #20c997; }
+.btn-abu { background: #6c757d; }
+.btn-pink { background: #f8c8dc; color:#333; }
+.btn-wa { background: #25d366; }
+.btn-ungu { background: #6f42c1; color:white; }
+.btn-grup { display:flex; gap:10px; }
+.btn-hapus { background: #dc3545; padding:5px 8px; font-size:12px; width:auto; border:none; color:white; border-radius:3px; cursor:pointer;}
+table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size:12px; }
+th, td { border: 1px solid #999; padding: 5px; text-align: center; }
+th { background: #eee; }
+.total-box { background: #d4edda; padding: 10px; margin-top: 10px; text-align:right; font-size:18px; font-weight:bold; border-radius:5px; }
+.kotak { border:2px dashed #007bff; padding:10px; border-radius:8px; margin-top:15px; }
+.kol-tunai { color:#28a745; font-weight:bold; }
+.kol-kredit { color:#dc3545; font-weight:bold; }
+/* Modal Aktivasi */
+#modalAktivasi { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center; }
+.modal-content { background:white; padding:20px; border-radius:8px; width:90%; max-width:400px; text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- MODAL AKTIVASI -->
+<div id="modalAktivasi" style="display:none;">
+  <div class="modal-content">
+    <h3>AKTIVASI APLIKASI KASIR</h3>
+    <p style="font-size:13px; color:#555;">Masukkan Kode Aktivasi untuk menggunakan aplikasi ini.</p>
+    <input type="text" id="inputKodeAktivasi" placeholder="Masukkan Kode..." style="width:100%; padding:10px; margin-bottom:10px; box-sizing:border-box;">
+    <button class="btn btn-hijau" onclick="prosesAktivasi()">AKTIFKAN SEKARANG</button>
+  </div>
+</div>
+
+<div class="box">
+<h2>🧺 KASIR LAUNDRY PAUL IT</h2>
+
+<!-- 1. INPUT ORDER -->
+<h3>INPUT ORDER</h3>
+<div class="form-row">
+  <div style="flex:1"><label>NAMA</label><input type="text" id="nama" placeholder="Nama Pelanggan"></div>
+</div>
+
+<div class="form-row">
+  <div style="flex:2"><label>LAYANAN</label>
+    <select id="layanan" onchange="setHarga()">
+      <option value="7000">Cuci Kiloan - 7000</option>
+      <option value="4000">Cuci Satuan - 4000</option>
+      <option value="2000">Setrika - 2000</option>
+    </select>
+  </div>
+  <div style="flex:1"><label>KG</label><input type="text" id="kg" value="1,5" oninput="hitung()" placeholder="Contoh: 1,5"></div>
+  <div style="flex:1"><label>HARGA</label><input type="text" id="harga" readonly></div>
+</div>
+
+<div class="form-row">
+  <div style="flex:1"><label>NOTA</label><input type="text" id="nota" readonly></div>
+  <div style="flex:1"><label>&nbsp;</label><button class="btn btn-hijau" style="margin-top:0;" onclick="tambahTransaksi()">+ TAMBAH</button></div>
+</div>
+
+<!-- 2. KUMPULAN TRANSAKSI -->
+<div class="kotak">
+<h3>KUMPULAN TRANSAKSI</h3>
+<table id="tabelKumpul">
+  <tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th><th>Aksi</th></tr>
+</table>
+<div class="total-box">TOTAL: Rp <span id="totalKumpul">0</span></div>
+<div class="btn-grup">
+  <button class="btn btn-hijau" id="btnTunai" onclick="pilihBayar('TUNAI')">TUNAI</button>
+  <button class="btn btn-pink" id="btnKredit" onclick="pilihBayar('KREDIT')">KREDIT</button>
+</div>
+<button class="btn btn-kuning" onclick="cetakKumpulan()">CETAK KUMPULAN TRANSAKSI (Browser)</button>
+<button class="btn btn-ungu" onclick="cetakRongtaIntent()">🖨️ CETAK VIA APLIKASI RONGTA / PRINTER</button>
+<button class="btn btn-biru" onclick="simpanKeDaftar()">SIMPAN KE DAFTAR TRANSAKSI</button>
+</div>
+
+<!-- 3. DAFTAR TRANSAKSI -->
+<div class="kotak" style="border-color:#28a745;">
+<h3>DAFTAR TRANSAKSI</h3>
+<table id="tabelDaftar">
+  <tr><th>Nota</th><th>Nama</th><th>Tgl</th><th>Tunai</th><th>Kredit</th><th>Total</th></tr>
+</table>
+<button class="btn btn-tosca" onclick="cetakSemuaDaftar()">CETAK SEMUA DAFTAR TRANSAKSI</button>
+<button class="btn btn-merah" onclick="resetDaftar()">RESET DAFTAR TRANSAKSI</button>
+<button class="btn btn-wa" onclick="kirimWhatsApp()">KIRIM LAPORAN KE WHATSAPP</button>
+</div>
+</div>
+
+<script>
+const KODE_LISENSI = 'PAULIT2026';
+
+let kumpulan = []; 
+let daftar = JSON.parse(localStorage.getItem('daftarTransaksi')) || []; 
+let noUrut = parseInt(localStorage.getItem('noUrut')) || 1;
+let statusBayar = 'TUNAI';
+
+window.onload = function(){
+  let statusAktif = localStorage.getItem('appAktif');
+  if(statusAktif !== 'true'){
+    document.getElementById('modalAktivasi').style.display = 'flex';
+    return;
+  }
+
+  document.getElementById('nota').value = 'N' + String(noUrut).padStart(3, '0');
+  setHarga(); 
+  tampilKumpul(); 
+  tampilDaftar(); 
+  pilihBayar('TUNAI');
+}
+
+function prosesAktivasi(){
+  let inputan = document.getElementById('inputKodeAktivasi').value.trim();
+  if(inputan === KODE_LISENSI){
+    localStorage.setItem('appAktif', 'true');
+    document.getElementById('modalAktivasi').style.display = 'none';
+    alert('Aktivasi Berhasil! Selamat menggunakan aplikasi.');
+    location.reload();
+  } else {
+    alert('Kode aktivasi salah! Silakan hubungi administrator.');
+  }
+}
+
+function setHarga(){
+  let h = parseInt(document.getElementById('layanan').value);
+  document.getElementById('harga').value = h.toLocaleString('id-ID');
+  hitung();
+}
+
+function hitung(){
+  let inputKg = document.getElementById('kg').value;
+  let kgClean = inputKg.replace(/,/g, '.');
+  let kg = parseFloat(kgClean);
+  if(isNaN(kg) || kg < 0) kg = 0;
+  
+  let h = parseInt(document.getElementById('layanan').value);
+  let total = Math.ceil(kg * h);
+  document.getElementById('harga').value = total.toLocaleString('id-ID');
+}
+
+function pilihBayar(status){
+  statusBayar = status;
+  document.getElementById('btnTunai').style.opacity = status==='TUNAI'? '1':'0.5';
+  document.getElementById('btnKredit').style.opacity = status==='KREDIT'? '1':'0.5';
+}
+
+function tambahTransaksi(){
+  let layananEl = document.getElementById('layanan');
+  let nama = document.getElementById('nama').value.trim() || 'Umum';
+  let layanan = layananEl.options[layananEl.selectedIndex].text;
+  
+  let inputKg = document.getElementById('kg').value;
+  let kgClean = inputKg.replace(/,/g, '.');
+  let kg = parseFloat(kgClean);
+  
+  if(isNaN(kg) || kg <= 0) {
+    alert('Masukkan jumlah KG yang valid dan lebih dari 0!');
+    return;
+  }
+  
+  let harga = parseInt(layananEl.value);
+  let jumlah = Math.ceil(kg * harga);
+  
+  kumpulan.push({nama, layanan, kg, harga, jumlah});
+  tampilKumpul();
+  document.getElementById('kg').value = '1';
+  hitung();
+}
+
+function hapusItem(index){
+  if(confirm('Hapus item ini?')){
+    kumpulan.splice(index, 1);
+    tampilKumpul();
+  }
+}
+
+function tampilKumpul(){
+  let t = '<tr><th>No</th><th>Layanan</th><th>KG</th><th>Harga</th><th>Jumlah</th><th>Aksi</th></tr>';
+  let total = 0;
+  kumpulan.forEach((d,i)=>{
+    total += d.jumlah;
+    t += `<tr>
+      <td>${i+1}</td>
+      <td>${d.layanan}</td>
+      <td>${d.kg}</td>
+      <td>${d.harga.toLocaleString('id-ID')}</td>
+      <td>${d.jumlah.toLocaleString('id-ID')}</td>
+      <td><button class="btn-hapus" onclick="hapusItem(${i})">HAPUS</button></td>
+    </tr>`;
+  });
+  document.getElementById('tabelKumpul').innerHTML = t;
+  document.getElementById('totalKumpul').innerText = total.toLocaleString('id-ID');
+}
+
+function simpanKeDaftar(){
+  if(kumpulan.length === 0) return alert('Kumpulan transaksi kosong!');
+  
+  let total = kumpulan.reduce((sum,d)=>sum+d.jumlah, 0);
+  let tunai = statusBayar === 'TUNAI' ? total : 0;
+  let kredit = statusBayar === 'KREDIT' ? total : 0;
+  let nota = document.getElementById('nota').value;
+  let nama = kumpulan[0].nama; 
+  let tgl = new Date().toLocaleDateString('id-ID');
+
+  daftar.push({nota, nama, tgl, tunai, kredit, total, items: [...kumpulan]});
+  
+  localStorage.setItem('daftarTransaksi', JSON.stringify(daftar));
+  
+  noUrut++;
+  localStorage.setItem('noUrut', noUrut);
+  document.getElementById('nota').value = 'N' + String(noUrut).padStart(3, '0');
+
+  kumpulan = [];
+  document.getElementById('nama').value = '';
+  tampilKumpul();
+  tampilDaftar();
+  alert('Transaksi berhasil disimpan!');
+}
+
+function tampilDaftar(){
+  let t = '<tr><th>Nota</th><th>Nama</th><th>Tgl</th><th>Tunai</th><th>Kredit</th><th>Total</th></tr>';
+  let totalTunai = 0;
+  let totalKredit = 0;
+  let grandTotal = 0;
+
+  daftar.forEach(d => {
+    totalTunai += d.tunai;
+    totalKredit += d.kredit;
+    grandTotal += d.total;
+    t += `<tr>
+      <td>${d.nota}</td>
+      <td>${d.nama}</td>
+      <td>${d.tgl}</td>
+      <td class="kol-tunai">${d.tunai > 0 ? d.tunai.toLocaleString('id-ID') : '-'}</td>
+      <td class="kol-kredit">${d.kredit > 0 ? d.kredit.toLocaleString('id-ID') : '-'}</td>
+      <td><b>${d.total.toLocaleString('id-ID')}</b></td>
+    </tr>`;
+  });
+
+  if(daftar.length > 0){
+    t += `<tr style="background:#e9ecef; font-weight:bold;">
+      <td colspan="3" style="text-align:right;">GRAND TOTAL:</td>
+      <td class="kol-tunai">${totalTunai.toLocaleString('id-ID')}</td>
+      <td class="kol-kredit">${totalKredit.toLocaleString('id-ID')}</td>
+      <td>${grandTotal.toLocaleString('id-ID')}</td>
+    </tr>`;
+  }
+
+  document.getElementById('tabelDaftar').innerHTML = t;
+}
+
+// Fungsi Cetak Standar Browser
+function cetakKumpulan(){
+  if(kumpulan.length === 0) return alert('Tidak ada transaksi untuk dicetak!');
+  let total = kumpulan.reduce((sum,d)=>sum+d.jumlah, 0);
+  let nota = document.getElementById('nota').value;
+  let nama = document.getElementById('nama').value || 'Umum';
+  let tglStr = new Date().toLocaleDateString('id-ID');
+  
+  let printWindow = window.open('', '_blank');
+  if(!printWindow) {
+    alert('Pop-up diblokir browser! Izinkan pop-up untuk mencetak.');
+    return;
+  }
+  
+  let html = `<html><head><title>Struk Nota ${nota}</title><style>
+    @media print { @page { size: 58mm auto; margin: 0; } body { margin: 0; } }
+    body{font-family:monospace; font-size:13px; font-weight:bold; padding:5px; width:48mm; margin:0 auto;}
+    .center{text-align:center;}
+    hr{border:none; border-top:1px dashed #000; margin:4px 0;}
+    .flex{display:flex; justify-content:space-between;}
+    .page-break { page-break-after: always; margin-bottom: 20px; }
+  </style></head><body>`;
+  
+  // --- STRUK 1: PELANGGAN ---
+  html += `<div class="center" style="font-size:15px;"><b>LAUNDRY PAUL IT</b></div>`;
+  html += `<div class="center">(STRUK PELANGGAN)</div>`;
+  html += `<div class="center">--------------------------------</div>`;
+  html += `Nota: ${nota}<br>Nama: ${nama}<br>Tgl: ${tglStr}`;
+  html += `<div class="center">--------------------------------</div>`;
+  
+  kumpulan.forEach(d => {
+    html += `<div>${d.layanan}</div>`;
+    html += `<div class="flex"><span>${d.kg}kg x ${d.harga.toLocaleString('id-ID')}</span><span>${d.jumlah.toLocaleString('id-ID')}</span></div>`;
+  });
+  
+  html += `<div class="center">--------------------------------</div>`;
+  html += `<div class="flex"><span>TOTAL:</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>`;
+  html += `<div class="center">Status: ${statusBayar}</div>`;
+  html += `<div class="center">--------------------------------</div>`;
+  html += `<div class="center">Terima Kasih</div>`;
+  
+  html += `<div class="page-break"></div>`;
+
+  // --- STRUK 2: ARSIR / TOKO ---
+  html += `<div class="center" style="font-size:15px;"><b>LAUNDRY PAUL IT</b></div>`;
+  html += `<div class="center">(ARSIP LAUNDRY)</div>`;
+  html += `<div class="center">--------------------------------</div>`;
+  html += `Nota: ${nota}<br>Nama: ${nama}<br>Tgl: ${tglStr}`;
+  html += `<div class="center">--------------------------------</div>`;
+  
+  kumpulan.forEach(d => {
+    html += `<div>${d.layanan}</div>`;
+    html += `<div class="flex"><span>${d.kg}kg x ${d.harga.toLocaleString('id-ID')}</span><span>${d.jumlah.toLocaleString('id-ID')}</span></div>`;
+  });
+  
+  html += `<div class="center">--------------------------------</div>`;
+  html += `<div class="flex"><span>TOTAL:</span><span>Rp ${total.toLocaleString('id-ID')}</span></div>`;
+  html += `<div class="center">Status: ${statusBayar}</div>`;
+  html += `<div class="center">--------------------------------</div>`;
+  html += `<div class="center">Bagian Arsip / Toko</div>`;
+  html += `</body></html>`;
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+  
+  setTimeout(() => {
+    printWindow.focus();
+    printWindow.print();
+  }, 500);
+}
+
+// Fungsi Cetak Menggunakan Intent Printer Android (Rongta / RawBT) dengan 2 Struk & Huruf Lebih Besar
+function cetakRongtaIntent(){
+  if(kumpulan.length === 0) return alert('Tidak ada transaksi untuk dicetak!');
+  let total = kumpulan.reduce((sum,d)=>sum+d.jumlah, 0);
+  let nota = document.getElementById('nota').value;
+  let nama = document.getElementById('nama').value || 'Umum';
+  let tglStr = new Date().toLocaleDateString('id-ID');
+
+  // Format Teks Struk Thermal (Menggunakan ESC/POS tag sederhana jika didukung, atau teks tebal/besar manual)
+  let textStruk = "";
+  
+  // --- STRUK 1: PELANGGAN ---
+  textStruk    += "    ** LAUNDRY PAUL IT **\n";
+  textStruk    += "      (STRUK PELANGGAN)\n";
+  textStruk    += "--------------------------------\n";
+  textStruk    += `Nota : ${nota}\n`;
+  textStruk    += `Nama : ${nama}\n`;
+  textStruk    += `Tgl  : ${tglStr}\n`;
+  textStruk    += "--------------------------------\n";
+  
+  kumpulan.forEach(d => {
+    textStruk  += `${d.layanan}\n`;
+    textStruk  += `  ${d.kg}kg x ${d.harga.toLocaleString('id-ID')} = ${d.jumlah.toLocaleString('id-ID')}\n`;
+  });
+  
+  textStruk    += "--------------------------------\n";
+  textStruk    += `TOTAL: Rp ${total.toLocaleString('id-ID')}\n`;
+  textStruk    += `Status: ${statusBayar}\n`;
+  textStruk    += "--------------------------------\n";
+  textStruk    += "       TERIMA KASIH\n\n\n";
+
+  // --- STRUK 2: ARSIP LAUNDRY ---
+  textStruk    += "    ** LAUNDRY PAUL IT **\n";
+  textStruk    += "       (ARSIP LAUNDRY)\n";
+  textStruk    += "--------------------------------\n";
+  textStruk    += `Nota : ${nota} | Nama : ${nama}\n`;
+  textStruk    += "--------------------------------\n";
+  
+  kumpulan.forEach(d => {
+    textStruk  += `${d.layanan} (${d.kg}kg)\n  = ${d.jumlah.toLocaleString('id-ID')}\n`;
+  });
+  
+  textStruk    += "--------------------------------\n";
+  textStruk    += `TOTAL: Rp ${total.toLocaleString('id-ID')}\n`;
+  textStruk    += `Status: ${statusBayar}\n`;
+  textStruk    += "--------------------------------\n";
+  textStruk    += "     BAGIAN ARSIP TOKO\n\n\n\n";
+
+  let encodedText = encodeURIComponent(textStruk);
+  window.location.href = "intent://print?text=" + encodedText + "#Intent;scheme=rawbt;package=ru.softmek.rawbt;end;";
+}
+
+function cetakSemuaDaftar(){
+  if(daftar.length === 0) return alert('Daftar transaksi kosong!');
+  
+  let totalTunai = daftar.reduce((sum, d) => sum + d.tunai, 0);
+  let totalKredit = daftar.reduce((sum, d) => sum + d.kredit, 0);
+  let grandTotal = daftar.reduce((sum, d) => sum + d.total, 0);
+
+  let printWindow = window.open('', '_blank');
+  if(!printWindow) return alert('Izinkan pop-up browser terlebih dahulu.');
+  
+  let html = `<html><head><title>Rekap Daftar Transaksi</title><style>
+    @media print { @page { size: 58mm auto; margin: 0; } body { margin: 0; } }
+    body{font-family:monospace; font-size:11px; font-weight:bold; padding:5px; width:48mm; margin:0 auto;}
+    .center{text-align:center;}
+    table{width:100%; border-collapse:collapse; font-size:10px; margin-top:5px;}
+    th,td{border:1px solid #000; padding:3px; text-align:center;}
+    th{background:#eee;}
+  </style></head><body>`;
+  
+  html += `<div class="center" style="font-size:14px;"><b>REKAP TRANSAKSI LAUNDRY</b></div>`;
+  html += `<div class="center">${new Date().toLocaleDateString('id-ID')}</div>`;
+  html += `<div class="center">--------------------------------</div>`;
+  
+  html += `<table>`;
+  html += `<tr><th>Nota</th><th>Nama</th><th>Tunai</th><th>Kredit</th><th>Tot</th></tr>`;
+  daftar.forEach(d => {
+    html += `<tr>
+      <td>${d.nota}</td>
+      <td>${d.nama}</td>
+      <td>${d.tunai > 0 ? d.tunai.toLocaleString('id-ID') : '-'}</td>
+      <td>${d.kredit > 0 ? d.kredit.toLocaleString('id-ID') : '-'}</td>
+      <td>${d.total.toLocaleString('id-ID')}</td>
+    </tr>`;
+  });
+  html += `</table>`;
+  
+  html += `<div class="center">--------------------------------</div>`;
+  html += `<b>Tot Tunai:</b> Rp ${totalTunai.toLocaleString('id-ID')}<br>`;
+  html += `<b>Tot Kredit:</b> Rp ${totalKredit.toLocaleString('id-ID')}<br>`;
+  html += `<b>GRAND TOTAL:</b> Rp ${grandTotal.toLocaleString('id-ID')}`;
+  html += `</body></html>`;
+  
+  printWindow.document.write(html);
+  printWindow.document.close();
+  
+  setTimeout(() => {
+    printWindow.focus();
+    printWindow.print();
+  }, 500);
+}
+
+function resetDaftar(){
+  if(daftar.length === 0) {
+    alert('Daftar transaksi sudah kosong!');
+    return;
+  }
+  if(confirm('Yakin ingin mereset seluruh daftar transaksi?')){
+    localStorage.removeItem('daftarTransaksi');
+    localStorage.removeItem('noUrut');
+    daftar = [];
+    noUrut = 1;
+    document.getElementById('nota').value = 'N001';
+    tampilDaftar();
+    alert('Daftar transaksi berhasil direset.');
+  }
+}
+
+function kirimWhatsApp(){
+  if(daftar.length === 0) return alert('Daftar transaksi kosong, tidak ada yang bisa dikirim!');
+  
+  let totalTunai = daftar.reduce((sum, d) => sum + d.tunai, 0);
+  let totalKredit = daftar.reduce((sum, d) => sum + d.kredit, 0);
+  let grandTotal = daftar.reduce((sum, d) => sum + d.total, 0);
+  
+  let pesan = `*LAPORAN REKAP TRANSAKSI LAUNDRY PAUL IT*%0A`;
+  pesan += `Tanggal: ${new Date().toLocaleDateString('id-ID')}%0A`;
+  pesan += `--------------------------------%0A`;
+  
+  daftar.forEach((sk, index) => {
+    pesan += `${index + 1}. Nota: *${sk.nota}* | Nama: *${sk.nama}* | Tot: Rp ${sk.total.toLocaleString('id-ID')}%0A`;
+  });
+  
+  pesan += `--------------------------------%0A`;
+  pesan += `Total Tunai: Rp ${totalTunai.toLocaleString('id-ID')}%0A`;
+  pesan += `Total Kredit: Rp ${totalKredit.toLocaleString('id-ID')}%0A`;
+  pesan += `*GRAND TOTAL: Rp ${grandTotal.toLocaleString('id-ID')}*%0A`;
+  
+  let urlWa = `https://api.whatsapp.com/send?text=${pesan}`;
+  window.open(urlWa, '_blank');
+}
+</script>
+</body>
+</html>
